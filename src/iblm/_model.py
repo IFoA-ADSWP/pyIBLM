@@ -398,7 +398,7 @@ class IBLM:
         callbacks = []
         if early_stopping_rounds:
             callbacks.append(
-                xgb.callback.EarlyStopping(rounds=early_stopping_rounds)
+                xgb.callback.EarlyStopping(rounds=early_stopping_rounds, save_best=True)
             )
 
         booster = xgb.train(

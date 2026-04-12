@@ -15,15 +15,16 @@ GLM coefficients  — 1e-4 relative
     points of R stats::glm and statsmodels differ more proportionally).
     1e-4 covers the worst case with room to spare.
 
-homog / glm deviance  — 1e-8 relative
-    Both depend only on the GLM; agreement with R is ~1e-11.
+homog / glm / iblm deviance  — 1e-8 relative
+    All three depend only on the GLM + XGBoost best_iteration trees.
+    Agreement with R is ~1e-10 to 1e-11.
 
-iblm deviance  — 0.05 relative (5 %)
-    The GLM base_margin fed into XGBoost differs from R's by ~1e-9.
-    These tiny differences compound over many boosting rounds, producing
-    different tree paths (R: 0.2563, Python: 0.2607, Δ ≈ 1.7 %).
-    A 5 % tolerance acknowledges this structural divergence while still
-    detecting large regressions.
+    Root cause of prior divergence (now fixed): Python's
+    xgb.callback.EarlyStopping retains *all* trained trees in the booster
+    (best_iteration + patience rounds = 39 trees), while R's xgb.train
+    with early_stopping_rounds trims the booster to best_iteration trees
+    after training.  The fix is EarlyStopping(save_best=True), which makes
+    Python match R's behaviour exactly.
 """
 
 import warnings
@@ -177,26 +178,19 @@ def test_glm_coefficients_vs_r(anchor_results):
 def test_pinball_scores_vs_r(anchor_results):
     """Pinball scores must agree with R v1.0.3 anchor within stated tolerances.
 
-    homog / glm  — 1e-8 relative  (GLM-only; matches R to ~1e-11)
-    iblm deviance     — 0.05 relative  (XGBoost paths diverge due to ~1e-9 GLM
-                                       base_margin diff; actual gap ~1.7 %)
-    iblm pinball_score — 0.02 absolute (1.7 % deviance gap amplifies to ~30 %
-                                       in pinball space; absolute diff ~0.016)
+    All models — 1e-8 relative / absolute.
+    The GLM-only models (homog, glm) match R to ~1e-11.
+    iblm matches R to ~1e-10 once the EarlyStopping(save_best=True) fix is
+    applied (Python now uses only best_iteration trees, same as R).
     """
     _, ps = anchor_results
     ps_dict = {row["model"]: row for _, row in ps.iterrows()}
 
-    # Deviance: relative tolerance
-    #   homog / glm match R to ~1e-11 so 1e-8 is generous.
-    #   iblm diverges by ~1.7 % due to XGBoost path differences; 0.05 covers it.
-    dev_tol_rel = {"homog": 1e-8, "glm": 1e-8, "iblm": 0.05}
+    # Deviance: relative tolerance — all three match R to ~1e-10 or better.
+    dev_tol_rel = {"homog": 1e-8, "glm": 1e-8, "iblm": 1e-8}
 
-    # Pinball score: absolute tolerance
-    #   homog is identically 0; glm matches R to ~1e-11.
-    #   iblm: the 1.7 % deviance gap magnifies to ~30 % in pinball space
-    #   (because pinball = 1 - dev/homog_dev amplifies near-1 ratios).
-    #   Absolute diff is ~0.016 so 0.02 is the right measure here.
-    pin_tol_abs = {"homog": 0.0, "glm": 1e-8, "iblm": 0.02}
+    # Pinball score: absolute tolerance — same level of agreement.
+    pin_tol_abs = {"homog": 0.0, "glm": 1e-8, "iblm": 1e-8}
 
     for _, r_row in _R_PINBALL.iterrows():
         model_name = r_row["model"]
