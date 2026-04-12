@@ -97,6 +97,9 @@ _R_GLM_COEFFS = {
     "VehPower":      0.05894266359794995,
 }
 
+_R_BOOSTER_SCORE     = 0.18048168787918548
+_R_BOOSTER_ITERATION = 13
+
 _R_PINBALL = pd.DataFrame({
     "model":            ["homog", "glm", "iblm"],
     "poisson_deviance": [0.27083016955873457, 0.26744791989655214, 0.25633025817301236],
@@ -118,7 +121,33 @@ def anchor_results():
 
 
 # ---------------------------------------------------------------------------
-# Test 1: GLM coefficients vs R anchor  (tolerance 1e-4 relative)
+# Test 1: Booster best_score and best_iteration vs R anchor
+# ---------------------------------------------------------------------------
+
+
+def test_booster_score_and_iteration_vs_r(anchor_results):
+    """Booster best_score and best_iteration must match R v1.0.3 anchor.
+
+    best_iteration is an integer and must be identical (13).
+    best_score differs by ~1e-9 relative — the GLM base_margin divergence
+    flows into the Poisson deviance metric; 1e-6 relative covers it.
+    """
+    model, _ = anchor_results
+    b = model.booster_model
+
+    assert b.best_iteration == _R_BOOSTER_ITERATION, (
+        f"best_iteration: got {b.best_iteration}, expected {_R_BOOSTER_ITERATION}"
+    )
+
+    rel_diff = abs(b.best_score / _R_BOOSTER_SCORE - 1)
+    assert rel_diff < 1e-6, (
+        f"best_score: got {b.best_score!r}, R={_R_BOOSTER_SCORE!r}, "
+        f"relative diff {rel_diff:.2e} (threshold 1e-6)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Test 2: GLM coefficients vs R anchor  (tolerance 1e-4 relative)
 # ---------------------------------------------------------------------------
 
 
