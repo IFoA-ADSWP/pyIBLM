@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "iblm"
+version = "0.1.0"
+description = "Interpretable Boosted Linear Models – a Python translation of the R IBLM package"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Paul Beard" }]
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "statsmodels>=0.14",
+    "xgboost>=2.0",
+    "matplotlib>=3.7",
+    "seaborn>=0.13",
+    "scipy>=1.11",
+]
+
+[project.optional-dependencies]
+data = [
+    # Required only for load_freMTPL2freq() – downloads and parses an .rda file
+    "rdata>=0.10",
+]
+dev = [
+    "pytest>=7.0",
+    "ipykernel",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/iblm"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/iblm/data" = "iblm/data"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
