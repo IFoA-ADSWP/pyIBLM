@@ -615,3 +615,317 @@ def test_pinball_scores_vs_r_gauss(anchor_results_gauss):
             f"{model_name} pinball_score: got {py_pin!r}, R={r_pin!r}, "
             f"absolute diff {abs(py_pin - r_pin):.2e} (threshold {tol_p})"
         )
+
+
+# ===========================================================================
+# Test suite 3: freMTPL2freq full dataset, quasipoisson, offset
+# ===========================================================================
+#
+# Data:   load_freMTPL2freq() |> head(600000)
+#         rep(c("train","train","train","train","validate","test"), 100000)
+#         LogExposure = log(Exposure); Exposure dropped.
+# Family: quasipoisson, offset_var="LogExposure"
+# Params: seed=0, tree_method="auto"  (no subsampling -> deterministic)
+# Explainer: migrate_reference_to_bias=True (default)
+#
+# Marked slow -- requires 600k row dataset download; skipped in fast CI.
+#
+# Tolerances
+# ----------
+# GLM coefficients          -- 1e-5 relative
+#     Large-dataset Poisson IRLS; worst ~6e-7 (RegionR21).
+# best_iteration            -- exact (71)
+# best_score                -- 1e-6 relative (~2.2e-9 observed)
+# beta_corrections colSums  -- 1e-4 relative
+#     ~2.4e-5 worst case (VehBrandB10; small sparse cell, SHAP noise).
+# data_beta_coeff colSums   -- 1e-5 relative (~5e-7 worst, Density)
+# Poisson deviance/pinball  -- 1e-8 relative/absolute (~6.4e-10 observed)
+# ---------------------------------------------------------------------------
+
+
+def _make_freMTPL2freq_splits():
+    """Mirror R's freMTPL2freq data prep.
+
+    R code::
+        load_freMTPL2freq() |>
+          head(600000) |>
+          mutate(train_validate_test =
+                   rep(c("train","train","train","train","validate","test"), 100000)) |>
+          mutate(LogExposure = log(Exposure)) |>
+          select(-Exposure) |>
+          split(~train_validate_test) |>
+          map(function(x) select(x, -train_validate_test))
+    """
+    from iblm import load_freMTPL2freq
+    df = load_freMTPL2freq()
+    df = df.head(600000)
+    n = len(df)
+    pattern = ["train", "train", "train", "train", "validate", "test"]
+    assert n % len(pattern) == 0
+    labels = np.tile(pattern, n // len(pattern))
+    df = df.assign(split=labels, LogExposure=np.log(df["Exposure"])).drop(columns=["Exposure"])
+    return {
+        k: df[df["split"] == k].drop(columns=["split"]).reset_index(drop=True)
+        for k in ("train", "validate", "test")
+    }
+
+
+def _fit_anchor_model_freq(splits):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        model = IBLM()
+        model.fit(
+            splits,
+            response_var="ClaimNb",
+            offset_var="LogExposure",
+            family="quasipoisson",
+            params={"seed": 0, "tree_method": "auto"},
+            verbose=0,
+        )
+    return model
+
+
+# -------------------------------------------------------------------------
+# R v1.0.3 anchor values -- freMTPL2freq suite
+# -------------------------------------------------------------------------
+
+_R3_GLM_COEFFS = {
+    "(Intercept)":   -3.851483920923259,
+    "AreaB":          0.042648846259151066,
+    "AreaC":          0.08505350181726866,
+    "AreaD":          0.16564441796292947,
+    "AreaE":          0.1843695588565849,
+    "AreaF":          0.12354950288550583,
+    "VehPower":       0.0037145883778674574,
+    "VehAge":        -0.03837068962800157,
+    "DrivAge":        0.007128935065930836,
+    "BonusMalus":     0.02298288012951094,
+    "VehBrandB10":    0.039887162312297414,
+    "VehBrandB11":    0.10482012480591664,
+    "VehBrandB12":    0.4248144345766385,
+    "VehBrandB13":    0.0060155379904895025,
+    "VehBrandB14":   -0.3071944968446458,
+    "VehBrandB2":    -0.007145489039407805,
+    "VehBrandB3":     0.005557653942387832,
+    "VehBrandB4":    -0.07041126112509567,
+    "VehBrandB5":     0.06250694199504907,
+    "VehBrandB6":    -0.0782696047561491,
+    "VehGasRegular":  0.04000354310196918,
+    "Density":       -1.758130038873787e-07,
+    "RegionR21":      0.017817170322585136,
+    "RegionR22":      0.10349135738699143,
+    "RegionR23":     -0.11955259358986396,
+    "RegionR24":     -0.05011718534750852,
+    "RegionR25":     -0.15297694218320854,
+    "RegionR26":     -0.0952269093060245,
+    "RegionR31":     -0.1763956979224515,
+    "RegionR41":     -0.3479035382751202,
+    "RegionR42":     -0.0805382994353449,
+    "RegionR43":     -0.2430524312147626,
+    "RegionR52":     -0.11843311917387073,
+    "RegionR53":     -0.014450207115500237,
+    "RegionR54":     -0.13514946846264897,
+    "RegionR72":     -0.16473700699844002,
+    "RegionR73":     -0.16800739555096506,
+    "RegionR74":      0.10243969524174937,
+    "RegionR82":     -0.011231450012576622,
+    "RegionR83":     -0.350868002823383,
+    "RegionR91":     -0.1058852541156366,
+    "RegionR93":     -0.07539522043282068,
+    "RegionR94":      0.06405613318450151,
+}
+
+_R3_BOOSTER_SCORE     = 0.21384179890905866
+_R3_BOOSTER_ITERATION = 71
+
+_R3_BETA_CORRECTIONS_COLSUMS = {
+    "bias":           4098.064910554031,
+    "VehPower":        -194.64714136305133,
+    "VehAge":         -2963.882501223408,
+    "DrivAge":          -38.87871377804541,
+    "BonusMalus":       -34.95054096970523,
+    "Density":          -18.756607099348223,
+    "AreaA":              0.0,
+    "AreaB":            -26.190764646078605,
+    "AreaC":            116.53240467864089,
+    "AreaD":           -291.6933306899882,
+    "AreaE":           -127.952601032237,
+    "AreaF":             62.76755008449254,
+    "VehBrandB1":         0.0,
+    "VehBrandB10":        1.203411410228,
+    "VehBrandB11":      -56.56196885902318,
+    "VehBrandB12":    -5062.473561759209,
+    "VehBrandB13":      -11.553639184479835,
+    "VehBrandB14":        0.09185002319281921,
+    "VehBrandB2":       493.122788999628,
+    "VehBrandB3":       213.43844020326287,
+    "VehBrandB4":       229.5069665168412,
+    "VehBrandB5":        69.67228306233301,
+    "VehBrandB6":       124.96899946473422,
+    "VehGasDiesel":       0.0,
+    "VehGasRegular":   -723.2834576012101,
+    "RegionR11":          0.0,
+    "RegionR21":         -7.1795986702200025,
+    "RegionR22":        -55.092336681787856,
+    "RegionR23":         -9.56001206219662,
+    "RegionR24":         83.90984205347922,
+    "RegionR25":        -29.874381124565843,
+    "RegionR26":        -32.74438238122093,
+    "RegionR31":        101.61301778642519,
+    "RegionR41":         -7.068528137693647,
+    "RegionR42":        -25.483009991818108,
+    "RegionR43":        -14.285656785301398,
+    "RegionR52":        -23.371059049051837,
+    "RegionR53":        -48.30043430585465,
+    "RegionR54":        -77.12399033198017,
+    "RegionR72":       -162.46765506524025,
+    "RegionR73":       -201.59179286615108,
+    "RegionR74":        -57.48065675527323,
+    "RegionR82":       -201.29628922400298,
+    "RegionR83":         21.925616116262972,
+    "RegionR91":       -475.31859824109415,
+    "RegionR93":       -175.90376081979412,
+    "RegionR94":         18.73199634393677,
+}
+
+_R3_DATA_BETA_COEFF_COLSUMS = {
+    "bias":       -381050.3271817722,
+    "Area":         10202.876336090865,
+    "VehPower":       176.81169642369434,
+    "VehAge":       -6800.951464023562,
+    "DrivAge":        674.0147928150382,
+    "BonusMalus":    2263.3374719813887,
+    "VehBrand":      2832.5536287052632,
+    "VehGas":        1341.1393877190117,
+    "Density":        -18.77418839973696,
+    "Region":       -8498.190586863284,
+}
+
+_R3_PINBALL = pd.DataFrame({
+    "model":            ["homog", "glm",              "iblm"],
+    "poisson_deviance": [0.3526789116671274,
+                         0.3367941478961098,
+                         0.3181535743351558],
+    "pinball_score":    [0.0,
+                         0.0450402993928094,
+                         0.09789453293016293],
+})
+
+
+@pytest.fixture(scope="module")
+def anchor_results_freq():
+    splits = _make_freMTPL2freq_splits()
+    model = _fit_anchor_model_freq(splits)
+    ps = get_pinball_scores(splits["test"], model)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        explainer = ExplainIBLM(model, splits["test"], migrate_reference_to_bias=True)
+    return model, ps, explainer
+
+
+@pytest.mark.slow
+def test_glm_coefficients_vs_r_freq(anchor_results_freq):
+    """GLM coefficients must agree with R v1.0.3 anchor to 1e-5 relative.
+
+    Large-dataset Poisson IRLS; worst ~6e-7 (RegionR21).
+    1e-5 covers all cases with room to spare.
+    """
+    model, _, _ex = anchor_results_freq
+    for name, r_val in _R3_GLM_COEFFS.items():
+        py_val = float(model.glm_model.params[name])
+        rel_diff = abs(py_val / r_val - 1)
+        assert rel_diff < 1e-5, (
+            f"GLM coeff {name!r}: got {py_val!r}, R={r_val!r}, "
+            f"relative diff {rel_diff:.2e} (threshold 1e-5)"
+        )
+
+
+@pytest.mark.slow
+def test_booster_score_and_iteration_vs_r_freq(anchor_results_freq):
+    """Booster best_score and best_iteration must match R v1.0.3 anchor.
+
+    seed=0, tree_method='auto', no subsampling -> deterministic.
+    best_iteration (71) is exact; best_score agrees to ~2.2e-9 relative.
+    """
+    model, _, _ex = anchor_results_freq
+    b = model.booster_model
+    assert b.best_iteration == _R3_BOOSTER_ITERATION, (
+        f"best_iteration: got {b.best_iteration}, expected {_R3_BOOSTER_ITERATION}"
+    )
+    rel_diff = abs(b.best_score / _R3_BOOSTER_SCORE - 1)
+    assert rel_diff < 1e-6, (
+        f"best_score: got {b.best_score!r}, R={_R3_BOOSTER_SCORE!r}, "
+        f"relative diff {rel_diff:.2e} (threshold 1e-6)"
+    )
+
+
+@pytest.mark.slow
+def test_beta_corrections_colsums_vs_r_freq(anchor_results_freq):
+    """beta_corrections column sums must agree with R v1.0.3 anchor to 1e-4 relative.
+
+    SHAP colsums agree to ~2.4e-5 worst case (VehBrandB10; small sparse
+    cell, SHAP floating-point noise amplified by low count).
+    Reference columns (AreaA, VehBrandB1, VehGasDiesel, RegionR11) are
+    asserted exactly zero.
+    """
+    _, _, explainer = anchor_results_freq
+    bc_sums = explainer.beta_corrections.sum()
+    for col, r_val in _R3_BETA_CORRECTIONS_COLSUMS.items():
+        py_val = float(bc_sums[col])
+        if r_val == 0.0:
+            assert py_val == 0.0, (
+                f"beta_corrections[{col!r}] colsum: got {py_val!r}, expected 0.0"
+            )
+        else:
+            rel_diff = abs(py_val / r_val - 1)
+            assert rel_diff < 1e-4, (
+                f"beta_corrections[{col!r}] colsum: got {py_val!r}, R={r_val!r}, "
+                f"relative diff {rel_diff:.2e} (threshold 1e-4)"
+            )
+
+
+@pytest.mark.slow
+def test_data_beta_coeff_colsums_vs_r_freq(anchor_results_freq):
+    """data_beta_coeff column sums must agree with R v1.0.3 anchor to 1e-5 relative.
+
+    GLM-derived; worst case ~5e-7 (Density, near-zero coefficient).
+    """
+    _, _, explainer = anchor_results_freq
+    dbc_sums = explainer.data_beta_coeff.sum()
+    for col, r_val in _R3_DATA_BETA_COEFF_COLSUMS.items():
+        py_val = float(dbc_sums[col])
+        rel_diff = abs(py_val / r_val - 1)
+        assert rel_diff < 1e-5, (
+            f"data_beta_coeff[{col!r}] colsum: got {py_val!r}, R={r_val!r}, "
+            f"relative diff {rel_diff:.2e} (threshold 1e-5)"
+        )
+
+
+@pytest.mark.slow
+def test_pinball_scores_vs_r_freq(anchor_results_freq):
+    """Poisson deviance and pinball scores must agree with R v1.0.3 anchor to 1e-8.
+
+    homog/glm agree to ~1e-11; iblm agrees to ~6.4e-10.
+    """
+    _, ps, _ex = anchor_results_freq
+    ps_dict = {row["model"]: row for _, row in ps.iterrows()}
+    dev_tol_rel = {"homog": 1e-8, "glm": 1e-8, "iblm": 1e-8}
+    pin_tol_abs = {"homog": 0.0,  "glm": 1e-8, "iblm": 1e-8}
+    for _, r_row in _R3_PINBALL.iterrows():
+        model_name = r_row["model"]
+        py_row = ps_dict[model_name]
+        r_dev = r_row["poisson_deviance"]
+        py_dev = float(py_row["poisson_deviance"])
+        rel_diff = abs(py_dev / r_dev - 1)
+        tol_d = dev_tol_rel[model_name]
+        assert rel_diff < tol_d, (
+            f"{model_name} poisson_deviance: got {py_dev!r}, R={r_dev!r}, "
+            f"relative diff {rel_diff:.2e} (threshold {tol_d})"
+        )
+        r_pin = r_row["pinball_score"]
+        py_pin = float(py_row["pinball_score"])
+        tol_p = pin_tol_abs[model_name]
+        assert abs(py_pin - r_pin) <= tol_p, (
+            f"{model_name} pinball_score: got {py_pin!r}, R={r_pin!r}, "
+            f"absolute diff {abs(py_pin - r_pin):.2e} (threshold {tol_p})"
+        )

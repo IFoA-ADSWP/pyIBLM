@@ -38,3 +38,6 @@ packages = ["src/iblm"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "slow: marks tests as slow (require large dataset download; deselect with '-m not slow')",
+]
