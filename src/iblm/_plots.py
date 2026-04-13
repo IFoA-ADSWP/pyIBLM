@@ -142,11 +142,10 @@ def _beta_corrected_scatter_plot(
         subtitle_parts = [f"{varname} beta: {round(beta, 3)}"]
         if not np.isnan(stderror):
             subtitle_parts.append(f"SE: +/-{round(stderror, 4)}")
-        ax.set_title(f"Beta Coefficients after SHAP corrections for {varname}")
-        ax.text(
-            0.5, 1.01, ", ".join(subtitle_parts),
-            transform=ax.transAxes, ha="center", fontsize=10,
-            color=IBLM_COLORS[1],
+        ax.set_title(
+            f"Beta Coefficients after SHAP corrections for {varname}"
+            f"\n{', '.join(subtitle_parts)}",
+            fontsize=11,
         )
 
         ax.set_xlabel(varname)
@@ -273,13 +272,13 @@ def _beta_corrected_density_plot(
 
     ax.set_xlim(lower_bound, upper_bound)
     ax.set_xlabel("Beta Coefficients")
-    ax.set_title(f"Beta density after SHAP corrections for {varname}")
-
     subtitle = f"{varname} beta: {round(beta, 3)}"
     if not np.isnan(stderror):
         subtitle += f", SE: +/-{round(stderror, 4)}"
-    ax.text(0.5, 1.01, subtitle, transform=ax.transAxes, ha="center",
-            fontsize=10, color=IBLM_COLORS[1])
+    ax.set_title(
+        f"Beta density after SHAP corrections for {varname}\n{subtitle}",
+        fontsize=11,
+    )
 
     _apply_theme(ax)
     fig.tight_layout()
@@ -448,13 +447,13 @@ def _bias_density_plot(
     ax_total.set_xlim(lower_total, upper_total)
     ax_total.set_xlabel("Bias Values")
     ax_total.set_ylabel("Count")
-    ax_total.set_title("Density for corrected bias values")
-
     subtitle_total = f"bias: {round(intercept, 3)}"
     if not np.isnan(se_intercept):
         subtitle_total += f", SE: +/-{round(se_intercept, 4)}"
-    ax_total.text(0.5, 1.01, subtitle_total, transform=ax_total.transAxes,
-                  ha="center", fontsize=10, color=IBLM_COLORS[1])
+    ax_total.set_title(
+        f"Density for corrected bias values\n{subtitle_total}",
+        fontsize=11,
+    )
 
     _apply_theme(ax_total)
     fig_total.tight_layout()
@@ -515,10 +514,9 @@ def _overall_correction_plot(
     mean_corr = round(float(np.mean(total_invlink)), 3)
     ax.set_title(
         f"Distribution of {relationship} corrections to GLM prediction"
+        f"\nmean correction: {mean_corr}",
+        fontsize=11,
     )
-    ax.text(0.5, 1.01, f"mean correction: {mean_corr}",
-            transform=ax.transAxes, ha="center", fontsize=10,
-            color=IBLM_COLORS[1])
 
     _apply_theme(ax)
     fig.tight_layout()
