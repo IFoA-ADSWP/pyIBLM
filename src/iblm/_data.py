@@ -29,9 +29,14 @@ def load_freMTPLmini() -> pd.DataFrame:
         * **VehPower** – Vehicle power rating.
         * **ClaimNb** – Annualised claim rate (claims divided by exposure,
           winsorised at the 99.9th percentile).
-        * **LogExposure** – Natural log of the exposure period in years.
+        * **Exposure** – Length of the exposure period in years.
 
         Categorical columns are encoded as ``pandas.Categorical``.
+        To use this dataset with a Poisson offset, create ``LogExposure``
+        before splitting::
+
+            df["LogExposure"] = np.log(df["Exposure"])
+            df = df.drop(columns=["Exposure"])
     """
     data_path = importlib.resources.files("iblm") / "data" / "freMTPLmini.csv"
     df = pd.read_csv(data_path)

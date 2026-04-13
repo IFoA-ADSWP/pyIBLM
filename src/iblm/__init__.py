@@ -23,7 +23,11 @@ Typical workflow::
         correction_corridor,
     )
 
+    import numpy as np
+
     df = load_freMTPLmini()
+    df["LogExposure"] = np.log(df["Exposure"])
+    df = df.drop(columns=["Exposure"])
     df_dict = split_into_train_validate_test(df, seed=9000)
 
     model = IBLM()
