@@ -40,11 +40,10 @@ def load_freMTPL2freq() -> pd.DataFrame:
 
     Applies the same pre-processing as the R ``IBLM`` package:
 
-    * ``ClaimNb`` cast to float and divided by ``Exposure`` (claim rate).
-    * ``ClaimNb`` winsorised at the 99.9th percentile.
+    * ``ClaimNb`` cast to float (raw counts, not divided by Exposure).
     * ``VehAge`` clipped at 50.
-    * ``IDpol`` and ``Exposure`` dropped.
-    * String columns converted to ``pandas.Categorical``.
+    * ``IDpol`` dropped; ``Exposure`` is retained.
+    * Character columns converted to ``pandas.Categorical``.
 
     Returns
     -------
@@ -77,11 +76,9 @@ def load_freMTPL2freq() -> pd.DataFrame:
 
     df = result["freMTPL2freq"]
 
-    df["ClaimNb"] = pd.to_numeric(df["ClaimNb"]) / df["Exposure"]
-    cap = df["ClaimNb"].quantile(0.999)
-    df["ClaimNb"] = df["ClaimNb"].clip(upper=cap)
+    df["ClaimNb"] = pd.to_numeric(df["ClaimNb"])
     df["VehAge"] = df["VehAge"].clip(upper=50)
-    df = df.drop(columns=["IDpol", "Exposure"])
+    df = df.drop(columns=["IDpol"])
 
     for col in df.select_dtypes(include=["object", "string"]).columns:
         df[col] = df[col].astype("category")
