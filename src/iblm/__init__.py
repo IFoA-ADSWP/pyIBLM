@@ -1,8 +1,15 @@
 """IBLM – Interpretable Boosted Linear Models.
 
-A Python translation of the R ``IBLM`` package.  Combines a Generalized
-Linear Model (GLM) with an XGBoost booster trained on the GLM residuals to
-produce an ensemble that is both accurate and interpretable via SHAP values.
+An ensemble modelling framework that combines a Generalized Linear Model
+(GLM) with an XGBoost booster trained on the GLM residuals to produce
+predictions that are both accurate and interpretable via SHAP values.
+
+Depending on the link function used, the two components are combined as:
+
+* **Multiplicative** (log-link families such as Poisson, Gamma, Tweedie):
+  ``prediction = GLM prediction × Booster prediction``
+* **Additive** (identity-link families such as Gaussian):
+  ``prediction = GLM prediction + Booster prediction``
 
 Typical workflow::
 

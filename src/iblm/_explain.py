@@ -26,16 +26,20 @@ def explain_iblm(
 ) -> "ExplainIBLM":
     """Create an :class:`ExplainIBLM` explainer for *iblm_model*.
 
+    Convenience constructor equivalent to
+    ``ExplainIBLM(iblm_model, data, migrate_reference_to_bias)``.
+
     Parameters
     ----------
     iblm_model:
         A fitted :class:`~iblm.IBLM` model.
     data:
-        DataFrame to explain (typically the test split).
+        DataFrame to explain.  Typically the test split returned by
+        :func:`~iblm.split_into_train_validate_test`.
     migrate_reference_to_bias:
         If ``True`` (default), the SHAP contributions of categorical reference
         levels are absorbed into the bias term rather than being shown as
-        per-variable corrections.
+        per-variable corrections.  It is recommended to leave this as ``True``.
 
     Returns
     -------
@@ -52,25 +56,39 @@ def explain_iblm(
 class ExplainIBLM:
     """SHAP-based explainer for a fitted :class:`~iblm.IBLM` model.
 
+    Explains the beta values of the IBLM ensemble and the booster corrections
+    applied to them, using SHAP (SHapley Additive exPlanations) values
+    extracted from the XGBoost component.
+
+    The key data attributes (:attr:`shap`, :attr:`beta_corrections`,
+    :attr:`data_beta_coeff`) are computed once at construction time.  The
+    plotting methods (:meth:`beta_corrected_scatter`, etc.) are bound to those
+    results, so only display settings (variable names, colours, quantile
+    bounds) need to be supplied when calling them.
+
     Attributes
     ----------
     shap : pd.DataFrame
-        Raw SHAP values extracted from the XGBoost booster.
+        Raw SHAP values extracted from the XGBoost booster, one row per
+        observation and one column per feature, plus a ``"BIAS"`` column.
     beta_corrections : pd.DataFrame
-        Per-row beta corrections in wide (one-hot) format.
+        Per-row booster beta corrections in wide (one-hot) format, with a
+        leading ``"bias"`` column.
     data_beta_coeff : pd.DataFrame
-        Combined GLM + booster beta coefficients per row and variable.
+        Combined GLM + booster beta coefficients, one row per observation
+        and one column per predictor plus a leading ``"bias"`` column.
 
-    Methods
-    -------
-    beta_corrected_scatter(varname, q=0, color=None)
-        Scatter / boxplot of beta coefficients after SHAP corrections.
-    beta_corrected_density(varname, q=0.05, type="kde")
-        Density / histogram of corrected beta values for a variable.
-    bias_density(q=0, type="hist")
-        Density plots for SHAP corrections migrated to bias.
-    overall_correction(transform_x_scale_by_link=True)
-        Distribution of the booster's overall correction factor.
+    Parameters
+    ----------
+    iblm_model:
+        A fitted :class:`~iblm.IBLM` model.
+    data:
+        DataFrame to explain.  Typically the test split returned by
+        :func:`~iblm.split_into_train_validate_test`.
+    migrate_reference_to_bias:
+        If ``True`` (default), the SHAP contributions of categorical reference
+        levels are absorbed into the bias term rather than being shown as
+        per-variable corrections.  It is recommended to leave this as ``True``.
     """
 
     def __init__(
@@ -116,22 +134,32 @@ class ExplainIBLM:
         q: float = 0,
         color: str | None = None,
     ) -> "plt.Figure":
-        """Scatter (or boxplot) of beta coefficients after SHAP corrections.
+        """Scatter plot or boxplot of beta coefficients after SHAP corrections.
+
+        For **continuous** variables, produces a scatter plot of variable
+        values vs. corrected beta coefficients, with a LOWESS smooth overlaid
+        and horizontal lines showing the GLM coefficient (solid) and ±1
+        standard error (dashed).
+
+        For **categorical** variables, produces a boxplot of corrected beta
+        coefficients for each non-reference level, with the GLM coefficient
+        overlaid as a point.
 
         Parameters
         ----------
         varname:
-            Name of the predictor variable to plot.
+            Name of the predictor variable to plot.  Must be present in the
+            fitted model.
         q:
-            Quantile threshold for outlier removal in continuous plots
-            (0 = no removal).
+            Quantile threshold for outlier removal in continuous plots.
+            ``0`` (default) retains all points.
         color:
-            Optional continuous or categorical variable name to colour points
-            by (continuous variables only).
+            Optional name of a variable in the data to colour scatter points
+            by.  Supported for continuous variables only.
 
         Returns
         -------
-        ``matplotlib.figure.Figure``
+        matplotlib.figure.Figure
         """
         from ._plots import _beta_corrected_scatter_plot
 
@@ -150,22 +178,32 @@ class ExplainIBLM:
         q: float = 0.05,
         type: str = "kde",
     ) -> "plt.Figure | dict[str, plt.Figure]":
-        """Density / histogram of corrected beta values.
+        """Density plot of corrected beta coefficients for a variable.
+
+        Displays the distribution of SHAP-corrected beta values alongside the
+        original GLM coefficient (solid vertical line) and ±1 standard error
+        bounds (dashed vertical lines).
 
         Parameters
         ----------
         varname:
-            Predictor name **or** a specific coefficient name (e.g. ``"AreaB"``).
+            Predictor name **or** a specific coefficient name (e.g.
+            ``"AreaB"``).  Passing a categorical variable name returns one
+            plot per non-reference level.
         q:
             Quantile bound for x-axis trimming; must satisfy ``0 <= q < 0.5``.
+            A value of ``0.05`` shows only the central 90 % of the
+            distribution.  Set to ``0`` for no trimming.
         type:
-            ``"kde"`` (kernel density) or ``"hist"`` (histogram).
+            Plot style: ``"kde"`` (kernel density estimate, default) or
+            ``"hist"`` (histogram).
 
         Returns
         -------
-        Single ``Figure`` for continuous variables or a specific coefficient
-        level; dict of ``Figure`` objects keyed by coefficient name for
-        categorical variables.
+        matplotlib.figure.Figure or dict[str, matplotlib.figure.Figure]
+            A single ``Figure`` for a continuous variable or a specific
+            coefficient level; a dict of ``Figure`` objects keyed by
+            coefficient name for a categorical variable.
         """
         from ._plots import _beta_corrected_density_plot
 
@@ -184,23 +222,34 @@ class ExplainIBLM:
         q: float = 0,
         type: str = "hist",
     ) -> "dict[str, plt.Figure | None]":
-        """Density plots for SHAP corrections migrated to bias.
+        """Density plots for SHAP corrections that have been migrated to bias.
+
+        Visualises the distribution of booster corrections that are absorbed
+        into the bias term: for continuous variables, rows where the feature
+        value is zero; for categorical variables (when
+        ``migrate_reference_to_bias=True``), rows at the reference level.
+        Variables with no records contributing to bias are omitted.
 
         Parameters
         ----------
         q:
-            Quantile bound for x-axis trimming (0 = no trimming).
+            Quantile bound for x-axis trimming; must satisfy ``0 <= q < 0.5``.
+            Set to ``0`` (default) for no trimming.
         type:
-            ``"kde"`` or ``"hist"``.
+            Plot style: ``"kde"`` (kernel density estimate) or ``"hist"``
+            (histogram, default).
 
         Returns
         -------
-        Dict with keys:
+        dict[str, matplotlib.figure.Figure or None]
+            A dict with two keys:
 
-        * ``"bias_correction_var"`` – faceted plot per variable.
-        * ``"bias_correction_total"`` – total corrected bias distribution.
+            * ``"bias_correction_var"`` – faceted plot showing the bias
+              correction distribution separately for each contributing variable.
+            * ``"bias_correction_total"`` – plot of the total corrected bias
+              distribution across all observations.
 
-        Either value may be ``None`` if no bias migration occurred.
+            Either value may be ``None`` if no bias migration occurred.
         """
         from ._plots import _bias_density_plot
 
@@ -217,17 +266,22 @@ class ExplainIBLM:
         self,
         transform_x_scale_by_link: bool = True,
     ) -> "plt.Figure":
-        """Distribution of the booster's overall correction factor.
+        """Distribution of the booster's overall correction for each observation.
+
+        Shows the total booster component (multiplicative factor for log-link
+        models; additive adjustment for identity-link models) across all
+        observations, as a kernel density plot.
 
         Parameters
         ----------
         transform_x_scale_by_link:
-            If ``True``, the x-axis is transformed by the inverse link
-            function (e.g. exponentiated for log-link models).
+            If ``True`` (default), the x-axis is transformed by the inverse
+            link function (e.g. exponentiated for log-link models so the axis
+            shows multiplicative factors rather than log-scale values).
 
         Returns
         -------
-        ``matplotlib.figure.Figure``
+        matplotlib.figure.Figure
         """
         from ._plots import _overall_correction_plot
 
@@ -257,23 +311,28 @@ def data_to_onehot(
 ) -> pd.DataFrame:
     """Convert *data* to wide one-hot format aligned with *iblm_model*.
 
-    All categorical variables are expanded to one binary column per level
-    (including the reference level, which will be all-zeros for that variable
-    when that row is the reference).  Continuous variables are preserved as
-    numeric.  An ``(Intercept)`` column of ones is prepended.
+    All categorical variables are expanded to one binary column per level,
+    including the reference level (which will be all-zeros for any row at
+    that level).  Continuous variables are preserved as numeric.  A leading
+    ``(Intercept)`` column of ones is prepended.
 
     Parameters
     ----------
     data:
-        Input DataFrame (usually the test split).
+        Input DataFrame.  Typically the test split returned by
+        :func:`~iblm.split_into_train_validate_test`.
     iblm_model:
-        Fitted :class:`~iblm.IBLM` model.
+        Fitted :class:`~iblm.IBLM` model used to determine the expected
+        columns and their ordering.
     remove_target:
-        Drop the response variable column if present (default ``True``).
+        If ``True`` (default), drop the response variable column if present
+        in *data*.
 
     Returns
     -------
-    DataFrame with columns ordered as in ``iblm_model.coeff_names["all"]``.
+    pd.DataFrame
+        Wide-format DataFrame with columns ordered as in
+        ``iblm_model.coeff_names["all"]``.
     """
     _check_iblm_fitted(iblm_model)
 
@@ -322,22 +381,25 @@ def shap_to_onehot(
 ) -> pd.DataFrame:
     """Distribute categorical SHAP values across their one-hot columns.
 
-    For each categorical variable, the single SHAP value per row is multiplied
-    by the one-hot mask, so that only the active level's column retains the
-    SHAP value.
+    XGBoost produces a single SHAP value per categorical variable per row.
+    This function distributes that value onto the active level's one-hot
+    column (multiplying by the one-hot mask), so that each level has its own
+    SHAP column and inactive levels are zero.
 
     Parameters
     ----------
     shap:
         Raw SHAP DataFrame from :func:`~iblm.extract_booster_shap`.
     wide_input_frame:
-        Output from :func:`data_to_onehot`.
+        One-hot encoded input data from :func:`data_to_onehot`.
     iblm_model:
         Fitted :class:`~iblm.IBLM` model.
 
     Returns
     -------
-    Wide-format SHAP DataFrame with a leading ``"bias"`` column.
+    pd.DataFrame
+        Wide-format SHAP DataFrame with one column per one-hot level and a
+        leading ``"bias"`` column (renamed from ``"BIAS"``).
     """
     _check_iblm_fitted(iblm_model)
 
@@ -392,28 +454,38 @@ def beta_corrections_derive(
     iblm_model: "IBLM",
     migrate_reference_to_bias: bool = True,
 ) -> pd.DataFrame:
-    """Compute per-row beta corrections from wide-format SHAP values.
+    """Compute per-row booster beta corrections from wide-format SHAP values.
 
-    For continuous variables: ``beta_correction = shap / feature_value``
-    (rows where feature_value == 0 are migrated to bias).
+    Processes SHAP values to produce beta coefficient corrections.  Three
+    transformations are applied:
 
-    For categorical reference levels: if *migrate_reference_to_bias* is
-    ``True``, their SHAP contributions are absorbed into the bias column.
+    1. **Continuous variables** – each SHAP value is divided by the
+       corresponding feature value to express the correction as a beta
+       addend: ``beta_correction = SHAP / feature_value``.
+    2. **Continuous variables at zero** – rows where the feature value is
+       zero cannot be scaled; their SHAP contributions are migrated into
+       the bias column instead.
+    3. **Categorical reference levels** – if *migrate_reference_to_bias* is
+       ``True``, SHAP contributions for rows at the reference level of each
+       categorical variable are absorbed into the bias column.
 
     Parameters
     ----------
     shap_wide:
-        Output of :func:`shap_to_onehot`.
+        Wide-format SHAP DataFrame from :func:`shap_to_onehot`.
     wide_input_frame:
-        Output of :func:`data_to_onehot`.
+        One-hot encoded input data from :func:`data_to_onehot`.
     iblm_model:
         Fitted :class:`~iblm.IBLM` model.
     migrate_reference_to_bias:
-        See :class:`ExplainIBLM`.
+        If ``True`` (default), absorb reference-level SHAP contributions
+        into the bias column.  It is recommended to leave this as ``True``.
 
     Returns
     -------
-    DataFrame of beta corrections in one-hot (wide) format.
+    pd.DataFrame
+        Beta corrections in one-hot (wide) format, with a leading
+        ``"bias"`` column.
     """
     _check_iblm_fitted(iblm_model)
 
@@ -462,24 +534,28 @@ def data_beta_coeff_glm(
 ) -> pd.DataFrame:
     """Return a DataFrame of GLM beta coefficients expanded row-wise.
 
-    Each row reflects the GLM coefficient(s) that apply to that observation:
+    Creates a tabular view where each row contains the GLM coefficients that
+    apply to that observation:
 
-    * Continuous variable column → constant (the GLM coefficient).
-    * Categorical variable column → the GLM coefficient for that row's level
-      (0 for the reference level).
-
-    A leading ``"bias"`` column contains the intercept.
+    * **Continuous variables** – each column contains the constant GLM
+      coefficient (the same value for every row).
+    * **Categorical variables** – each column contains the GLM coefficient
+      for the level observed in that row (``0`` for the reference level).
+    * **bias** – the intercept coefficient (constant across all rows).
 
     Parameters
     ----------
     data:
-        Predictor DataFrame (response/weight/offset columns are ignored).
+        Predictor DataFrame.  Response, weight, and offset columns are
+        silently ignored.
     iblm_model:
         Fitted :class:`~iblm.IBLM` model.
 
     Returns
     -------
-    DataFrame with columns ``[bias, *predictor_vars["all"]]``.
+    pd.DataFrame
+        DataFrame with columns ``["bias", *predictor_vars["all"]]``, one
+        row per observation.
     """
     _check_iblm_fitted(iblm_model)
 
@@ -522,25 +598,29 @@ def data_beta_coeff_booster(
 ) -> pd.DataFrame:
     """Return a DataFrame of booster beta corrections expanded row-wise.
 
-    The structure mirrors :func:`data_beta_coeff_glm`: one column per
-    predictor plus a leading ``"bias"`` column.
+    Mirrors the structure of :func:`data_beta_coeff_glm`: one column per
+    predictor plus a leading ``"bias"`` column.  For categorical variables,
+    the one-hot columns in *beta_corrections* are collapsed back to a single
+    column per variable by summing across levels (only the active level's
+    column is non-zero, so no information is lost).
 
-    For categorical variables the relevant one-hot columns in
-    *beta_corrections* are summed (only the active level's column will be
-    non-zero).
+    Adding the output of this function to that of :func:`data_beta_coeff_glm`
+    gives the combined GLM + booster beta coefficients per observation.
 
     Parameters
     ----------
     data:
         Predictor DataFrame.
     beta_corrections:
-        Output of :func:`beta_corrections_derive`.
+        Per-row booster beta corrections from :func:`beta_corrections_derive`.
     iblm_model:
         Fitted :class:`~iblm.IBLM` model.
 
     Returns
     -------
-    DataFrame with the same shape as :func:`data_beta_coeff_glm` output.
+    pd.DataFrame
+        DataFrame with the same column structure as
+        :func:`data_beta_coeff_glm`.
     """
     _check_iblm_fitted(iblm_model)
 

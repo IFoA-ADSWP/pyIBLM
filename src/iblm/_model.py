@@ -153,10 +153,13 @@ class IBLM:
     """Interpretable Boosted Linear Model.
 
     Combines a Generalized Linear Model (GLM) with an XGBoost booster
-    trained on the GLM residuals::
+    trained on the GLM residuals.  Depending on the link function the two
+    components are combined as:
 
-        Prediction = GLM × Booster  (log-link families)
-        Prediction = GLM + Booster  (identity-link families)
+    * **Multiplicative** (log-link families):
+      ``prediction = GLM prediction × Booster prediction``
+    * **Additive** (identity-link families):
+      ``prediction = GLM prediction + Booster prediction``
 
     Typical workflow::
 
@@ -165,6 +168,30 @@ class IBLM:
         model.fit(df_dict, response_var="ClaimNb", offset_var="LogExposure",
                   family="poisson")
         preds = model.predict(df_dict["test"])
+
+    Attributes
+    ----------
+    glm_model : statsmodels GLM result or None
+        The GLM fitted on the training data (set by :meth:`fit`).
+    booster_model : xgb.Booster or None
+        The XGBoost booster trained on the GLM residuals (set by :meth:`fit`).
+    relationship : str or None
+        How the two components are combined: ``"multiplicative"`` or
+        ``"additive"`` (set by :meth:`fit`).
+    response_var : str or None
+        Name of the response variable (set by :meth:`fit`).
+    predictor_vars : dict or None
+        ``{"all": [...], "categorical": [...], "continuous": [...]}``
+        (set by :meth:`fit`).
+    cat_levels : dict or None
+        Categorical level metadata: ``{"all": {...}, "reference": {...}}``
+        (set by :meth:`fit`).
+    coeff_names : dict or None
+        Coefficient name metadata: ``{"all": [...], "all_cat": [...],
+        "reference_cat": [...]}`` (set by :meth:`fit`).
+    data : dict or None
+        Training and validation data retained for scoring:
+        ``{"train": DataFrame, "validate": DataFrame}`` (set by :meth:`fit`).
     """
 
     # ------------------------------------------------------------------ #
@@ -215,38 +242,63 @@ class IBLM:
     ) -> "IBLM":
         """Train the IBLM model.
 
+        Fits a GLM on the training data and then trains an XGBoost booster on
+        the GLM residuals, using the GLM's linear predictor as the booster's
+        base margin.
+
+        The ``family`` argument controls both the GLM distribution and the
+        default XGBoost objective:
+
+        ============== ========================== ============================
+        family         GLM family                 XGBoost objective
+        ============== ========================== ============================
+        ``"poisson"``  Poisson (log link)         ``count:poisson``
+        ``"quasipoisson"`` Poisson (log link)     ``count:poisson``
+        ``"gamma"``    Gamma (log link)            ``reg:gamma``
+        ``"tweedie"``  Tweedie (log link, p=1.5)  ``reg:tweedie``
+        ``"gaussian"`` Gaussian (identity link)   ``reg:squarederror``
+        ============== ========================== ============================
+
         Parameters
         ----------
         df_dict:
-            Dict with ``"train"`` and ``"validate"`` DataFrames (e.g. from
-            :func:`split_into_train_validate_test`).
+            Dict with ``"train"`` and ``"validate"`` DataFrames.  The natural
+            output of :func:`split_into_train_validate_test`.
         response_var:
-            Name of the response column.
+            Name of the response column.  Must be present in both
+            ``df_dict["train"]`` and ``df_dict["validate"]``.
         weight_var:
-            Optional weight column name.
+            Optional weight column name.  ``None`` for no weighting.
         offset_var:
-            Optional offset column (must already be on the link scale, e.g.
-            ``log(Exposure)`` for a Poisson model).
+            Optional offset column.  Must already be on the link scale
+            (e.g. ``log(Exposure)`` for a Poisson model with log link).
+            Any required transformation must be applied *before* passing
+            ``df_dict`` to this method.
         family:
-            GLM / XGBoost distribution family. One of ``"poisson"``,
-            ``"quasipoisson"``, ``"gamma"``, ``"tweedie"``, ``"gaussian"``.
+            Distribution family for the GLM and XGBoost booster.  One of
+            ``"poisson"``, ``"quasipoisson"``, ``"gamma"``, ``"tweedie"``,
+            ``"gaussian"``.
         params:
-            Additional XGBoost parameters (passed to ``xgb.train``).
+            Additional XGBoost parameters forwarded to ``xgb.train``.
+            Note that ``"objective"`` is selected automatically based on
+            ``family``; override with caution.
         nrounds:
             Maximum number of boosting rounds.
         early_stopping_rounds:
-            Stop if validation metric does not improve for this many rounds.
+            Stop boosting if the validation metric does not improve for this
+            many consecutive rounds.
         verbose:
-            Verbosity for XGBoost training (0 = silent).
+            Verbosity level for XGBoost training (``0`` = silent).
         strip_glm:
-            If ``True``, remove training data cached inside the GLM result to
-            save memory.
+            If ``True`` (default), remove the raw training arrays cached
+            inside the fitted GLM object to reduce memory usage.
         **xgb_kwargs:
-            Additional keyword arguments forwarded to ``xgb.train``.
+            Additional keyword arguments forwarded directly to ``xgb.train``.
 
         Returns
         -------
         self
+            Returns the fitted model instance to allow method chaining.
         """
         params = params or {}
 
@@ -489,20 +541,33 @@ class IBLM:
     ) -> np.ndarray:
         """Generate predictions from the fitted IBLM model.
 
+        The prediction process follows these steps:
+
+        1. Compute GLM predictions for *newdata*.
+        2. Compute XGBoost booster predictions for *newdata*.
+        3. If *trim* is specified, constrain booster predictions to the
+           corridor ``[1 - trim, 1 + trim]`` and re-normalise.
+        4. Combine GLM and booster predictions according to
+           ``self.relationship`` (multiplicative or additive).
+
         Parameters
         ----------
         newdata:
-            DataFrame with the same structure as training data.
+            DataFrame with the same columns as the training data.
         trim:
-            Post-hoc trimming of XGBoost predictions.  If ``None`` (default)
+            Post-hoc trimming of booster predictions.  If ``None`` (default)
             no trimming is applied.  For example, ``trim=0.2`` constrains
-            booster predictions to ``[0.8, 1.2]`` before re-normalising.
+            each booster prediction to ``[0.8, 1.2]`` before re-normalising
+            so the mean correction remains 1.
         type:
-            ``"response"`` (default) or ``"link"``.
+            Type of prediction to return.  ``"response"`` (default) returns
+            predictions on the original response scale; ``"link"`` returns
+            predictions on the link (linear predictor) scale.
 
         Returns
         -------
-        numpy.ndarray of predictions.
+        numpy.ndarray
+            Array of predictions, one per row of *newdata*.
         """
         if self.glm_model is None:
             raise RuntimeError("Model has not been fitted yet. Call .fit() first.")
@@ -594,22 +659,28 @@ class IBLM:
 
 
 def train_xgb_as_per_iblm(iblm_model: IBLM, **xgb_kwargs: Any) -> xgb.Booster:
-    """Retrain a standalone XGBoost model using the IBLM's stored parameters.
+    """Train a standalone XGBoost model using the same parameters as a fitted IBLM.
 
-    This is useful for direct comparison: the XGBoost model is trained on the
-    raw response (with offset as base_margin if applicable), not on GLM
-    residuals.
+    Trains an XGBoost model directly on the response variable (with the
+    offset as base margin, if applicable) rather than on GLM residuals.
+    This provides a convenient baseline for direct comparison with the
+    :class:`IBLM` ensemble: both models use identical XGBoost configuration
+    and data, but the standalone booster receives no GLM signal.
 
     Parameters
     ----------
     iblm_model:
-        A fitted :class:`IBLM` instance.
+        A fitted :class:`IBLM` instance.  The training data, validation data,
+        and XGBoost parameters are read from this object.
     **xgb_kwargs:
-        Override any stored XGBoost parameters.
+        Optional overrides for the stored XGBoost parameters.  Note that
+        supplying overrides will cause the standalone booster to deviate from
+        the settings used to train *iblm_model*.
 
     Returns
     -------
-    Trained ``xgb.Booster``.
+    xgb.Booster
+        A trained XGBoost booster.
     """
     if iblm_model.glm_model is None:
         raise RuntimeError("iblm_model has not been fitted.")

@@ -30,26 +30,43 @@ def get_pinball_scores(
 ) -> pd.DataFrame:
     """Compute deviance and pinball scores for IBLM and comparison models.
 
-    Scores are computed relative to a homogeneous baseline model (intercept-only
-    GLM fitted on the training data).
+    Scores are computed for three built-in models and any additional models
+    supplied:
+
+    * **homog** – intercept-only (homogeneous) baseline fitted on the
+      training data; all predictions equal the weighted training mean.
+    * **glm** – the GLM component of *iblm_model*.
+    * **iblm** – the full IBLM ensemble.
+
+    Pinball scores are calculated relative to the homogeneous baseline.
+    Higher (more positive) scores indicate better predictive performance; a
+    negative score indicates worse than the homogeneous baseline.
 
     Parameters
     ----------
     data:
-        Test DataFrame (typically ``df_dict["test"]``).
+        Test DataFrame.  Typically ``df_dict["test"]`` from
+        :func:`~iblm.split_into_train_validate_test`.
     iblm_model:
         A fitted :class:`~iblm.IBLM` model.
     trim:
-        Optional trim value passed to :meth:`~iblm.IBLM.predict`.
+        Optional trim value forwarded to :meth:`~iblm.IBLM.predict`.
     additional_models:
-        Dict of ``{name: model}`` for additional comparisons.  Each model must
-        expose a ``.predict(X)`` method (scikit-learn convention) or be an
-        ``xgb.Booster``.
+        Optional dict of ``{name: model}`` for additional comparisons.
+        Each model must expose a ``.predict(X)`` method or be an
+        ``xgb.Booster``.  Models must have been fitted on the same training
+        data as *iblm_model* for sensible results.
 
     Returns
     -------
-    DataFrame with columns ``["model", "<family>_deviance", "pinball_score"]``.
-    A positive pinball score means the model outperforms the homogeneous baseline.
+    pd.DataFrame
+        A DataFrame with one row per model and the following columns:
+
+        * ``"model"`` – model label (``"homog"``, ``"glm"``, ``"iblm"``,
+          plus any keys from *additional_models*).
+        * ``"<family>_deviance"`` – mean deviance on the test data using the
+          loss function for the fitted family.
+        * ``"pinball_score"`` – ``1 - deviance / homog_deviance``.
     """
     if iblm_model.glm_model is None:
         raise RuntimeError("iblm_model has not been fitted.")
@@ -191,29 +208,38 @@ def correction_corridor(
     seed: int | None = None,
     **scatter_kwargs: Any,
 ) -> plt.Figure:
-    """Faceted scatter plot comparing GLM vs IBLM predictions across trim values.
+    """Faceted scatter plot of GLM vs IBLM predictions across trim values.
+
+    Creates a faceted scatter plot comparing the GLM predictions to the full
+    IBLM ensemble predictions across different trim values.  The diagonal line
+    (y = x) represents perfect agreement between the two components; deviation
+    from the diagonal shows the magnitude of the booster's correction.
+
+    One facet is produced per entry in *trim_vals*.
 
     Parameters
     ----------
     iblm_model:
         A fitted :class:`~iblm.IBLM` model.
     data:
-        DataFrame to plot (typically the test split).
+        DataFrame to plot.  Typically the test split returned by
+        :func:`~iblm.split_into_train_validate_test`.
     trim_vals:
-        List of trim values to show (``None`` = no trimming).
-        Defaults to ``[None, 4, 1, 0.2, 0.1, 0]``.
+        Trim values to display, one facet each.  ``None`` in the list means
+        no trimming.  Defaults to ``[None, 4, 1, 0.2, 0.1, 0]``.
     sample_perc:
-        Fraction of *data* to sample for performance.
+        Fraction of *data* to sample before plotting.  Default ``0.2``
+        improves performance with large datasets.
     color:
-        Optional variable name to colour scatter points by.
+        Optional name of a variable in *data* to colour scatter points by.
     seed:
         Random seed for the sample.
     **scatter_kwargs:
-        Additional keyword arguments forwarded to the scatter plot.
+        Additional keyword arguments forwarded to the scatter plot call.
 
     Returns
     -------
-    ``matplotlib.figure.Figure``
+    matplotlib.figure.Figure
     """
     if iblm_model.glm_model is None:
         raise RuntimeError("iblm_model has not been fitted.")

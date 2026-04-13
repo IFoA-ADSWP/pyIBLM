@@ -1,4 +1,4 @@
-"""SHAP extraction – singledispatch generic (Python equivalent of R S3)."""
+"""SHAP extraction – extensible dispatch for fitted booster models."""
 
 from __future__ import annotations
 
@@ -11,11 +11,11 @@ import pandas as pd
 
 @singledispatch
 def extract_booster_shap(booster_model: Any, data: pd.DataFrame, **kwargs: Any) -> pd.DataFrame:
-    """Extract SHAP contribution values from a fitted booster model.
+    """Extract SHAP (SHapley Additive exPlanations) values from a fitted booster.
 
     This is a :func:`functools.singledispatch` generic that dispatches on the
-    type of *booster_model*.  New booster types can be registered without
-    modifying this module::
+    type of *booster_model*, making it straightforward to support additional
+    booster libraries without modifying this module::
 
         from iblm import extract_booster_shap
         import lightgbm as lgb
@@ -24,21 +24,24 @@ def extract_booster_shap(booster_model: Any, data: pd.DataFrame, **kwargs: Any) 
         def _(booster_model, data, **kwargs):
             ...
 
+    ``xgb.Booster`` is supported out of the box.
+
     Parameters
     ----------
     booster_model:
-        A fitted booster object.  Currently ``xgb.Booster`` is supported
-        out of the box.
+        A fitted booster object.
     data:
-        DataFrame containing the predictor variables.  Any extra columns
-        (response, offset, etc.) are silently dropped.
+        DataFrame containing the predictor variables.  Any additional columns
+        (response, offset, weights, etc.) are silently dropped.
     **kwargs:
         Additional arguments forwarded to the registered implementation.
 
     Returns
     -------
-    DataFrame of SHAP values with shape ``(n_rows, n_features + 1)``.
-    The last column is named ``"BIAS"``.
+    pd.DataFrame
+        SHAP values with shape ``(n_rows, n_features + 1)``.  Feature columns
+        match the booster's feature names; the final column is named
+        ``"BIAS"`` and contains the booster's bias term.
     """
     raise NotImplementedError(
         f"extract_booster_shap is not implemented for booster type "

@@ -21,20 +21,33 @@ def split_into_train_validate_test(
     test_prop: float = 0.15,
     seed: int | None = None,
 ) -> dict[str, pd.DataFrame]:
-    """Randomly split *df* into train, validate and test subsets.
+    """Randomly split *df* into train, validate, and test subsets.
+
+    Each row is assigned independently to one of the three subsets with the
+    probabilities defined by *train_prop*, *validate_prop*, and *test_prop*.
+    Because assignment is row-independent, the realised proportions may
+    differ slightly from the requested values; this effect is negligible for
+    the large datasets typical of IBLM workflows.
 
     Parameters
     ----------
     df:
-        Input DataFrame.
-    train_prop, validate_prop, test_prop:
-        Proportions for each split; must sum to 1.
+        Input DataFrame to split.
+    train_prop:
+        Proportion of rows allocated to the training subset.
+    validate_prop:
+        Proportion of rows allocated to the validation subset (used for
+        XGBoost early stopping during :meth:`~iblm.IBLM.fit`).
+    test_prop:
+        Proportion of rows allocated to the held-out test subset.
     seed:
-        Optional random seed for reproducibility.
+        Optional integer random seed for reproducibility.
 
     Returns
     -------
-    dict with keys ``"train"``, ``"validate"`` and ``"test"``.
+    dict[str, pd.DataFrame]
+        A dict with keys ``"train"``, ``"validate"``, and ``"test"``, each
+        containing the corresponding subset as a reset-index DataFrame.
     """
     if not isinstance(df, pd.DataFrame):
         raise TypeError("df must be a pandas DataFrame.")
