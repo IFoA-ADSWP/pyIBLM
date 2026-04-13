@@ -192,6 +192,9 @@ class IBLM:
     data : dict or None
         Training and validation data retained for scoring:
         ``{"train": DataFrame, "validate": DataFrame}`` (set by :meth:`fit`).
+    family : str or None
+        The distribution family used to fit the model, e.g. ``"poisson"``
+        (set by :meth:`fit`).
     """
 
     # ------------------------------------------------------------------ #
@@ -203,6 +206,7 @@ class IBLM:
     response_var: str | None
     weight_var: str | None
     offset_var: str | None
+    family: str | None
     predictor_vars: dict | None       # {all, categorical, continuous}
     cat_levels: dict | None           # {all, reference}
     coeff_names: dict | None          # {all, all_cat, reference_cat}
@@ -216,6 +220,7 @@ class IBLM:
         self.response_var = None
         self.weight_var = None
         self.offset_var = None
+        self.family = None
         self.predictor_vars = None
         self.cat_levels = None
         self.coeff_names = None
@@ -521,6 +526,7 @@ class IBLM:
         self.response_var = response_var
         self.weight_var = weight_var
         self.offset_var = offset_var
+        self.family = family.lower()
         self.predictor_vars = predictor_vars
         self.cat_levels = cat_levels
         self.coeff_names = coeff_names

@@ -95,8 +95,9 @@ def _beta_corrected_scatter_plot(
 
         glm_coeff_name = varname
         beta = glm_params.get(glm_coeff_name, np.nan)
+        show_se = iblm_model.family == "poisson"
         try:
-            stderror = glm_bse[glm_coeff_name]
+            stderror = glm_bse[glm_coeff_name] if show_se else np.nan
         except KeyError:
             stderror = np.nan
 
@@ -222,8 +223,9 @@ def _beta_corrected_density_plot(
 
     # Single plot
     beta = glm_params.get(varname, np.nan)
+    show_se = iblm_model.family == "poisson"
     try:
-        stderror = glm_bse[varname]
+        stderror = glm_bse[varname] if show_se else np.nan
     except KeyError:
         stderror = np.nan
 
@@ -236,7 +238,7 @@ def _beta_corrected_density_plot(
 
     corrected_values = beta + shap_deviations
 
-    # Axis bounds
+    # Axis bounds – only extend to beta ± SE when SE is shown
     if q > 0:
         lo_q, hi_q = np.quantile(corrected_values, [q, 1 - q])
     else:
@@ -309,6 +311,7 @@ def _bias_density_plot(
     ref_levels = iblm_model.cat_levels["reference"]
     glm_params = iblm_model.glm_model.params
     glm_bse = iblm_model.glm_model.bse
+    show_se = iblm_model.family == "poisson"
 
     rows: list[dict] = []
 
@@ -347,13 +350,14 @@ def _bias_density_plot(
     else:
         lo_q, hi_q = all_corr.min(), all_corr.max()
 
-    # Standard errors for continuous variables (for reference lines)
+    # Standard errors for continuous variables (for reference lines, Poisson only)
     se_vals: list[float] = []
-    for var in cont_vars:
-        if var in glm_bse.index:
-            se = glm_bse[var]
-            if not np.isnan(se):
-                se_vals.extend([se, -se])
+    if show_se:
+        for var in cont_vars:
+            if var in glm_bse.index:
+                se = glm_bse[var]
+                if not np.isnan(se):
+                    se_vals.extend([se, -se])
 
     if se_vals:
         lower_bound = min(lo_q, min(se_vals))
@@ -384,8 +388,8 @@ def _bias_density_plot(
             ax.hist(var_data_clipped, bins=100, color="grey", alpha=0.4,
                     edgecolor="grey")
 
-        # SE lines for continuous vars
-        if var in glm_bse.index:
+        # SE lines for continuous vars (Poisson only)
+        if show_se and var in glm_bse.index:
             se = glm_bse[var]
             if not np.isnan(se):
                 ax.axvline(se, color=IBLM_COLORS[1], linestyle="--", linewidth=0.8)
@@ -408,7 +412,7 @@ def _bias_density_plot(
     # ---- Plot 2: total bias by row ----
     intercept = glm_params.get("(Intercept)", 0.0)
     try:
-        se_intercept = glm_bse["(Intercept)"]
+        se_intercept = glm_bse["(Intercept)"] if show_se else np.nan
     except KeyError:
         se_intercept = np.nan
 
