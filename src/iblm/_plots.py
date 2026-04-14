@@ -269,8 +269,8 @@ def _beta_corrected_density_plot(
     if not np.isnan(beta):
         ax.axvline(beta, color=IBLM_COLORS[1], linewidth=1.0)
     if not np.isnan(stderror):
-        ax.axvline(beta - stderror, color=IBLM_COLORS[2], linewidth=0.8, linestyle="--")
-        ax.axvline(beta + stderror, color=IBLM_COLORS[2], linewidth=0.8, linestyle="--")
+        ax.axvline(beta - stderror, color=IBLM_COLORS[1], linewidth=0.8, linestyle="--")
+        ax.axvline(beta + stderror, color=IBLM_COLORS[1], linewidth=0.8, linestyle="--")
 
     ax.set_xlim(lower_bound, upper_bound)
     ax.set_xlabel("Beta Coefficients")
