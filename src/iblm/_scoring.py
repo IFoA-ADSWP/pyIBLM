@@ -89,6 +89,12 @@ def get_pinball_scores(
     if offset_var and offset_var in data.columns:
         test_offset = data[offset_var].to_numpy(dtype=float)
     else:
+        if offset_var and offset_var not in data.columns:
+            import warnings
+            warnings.warn(
+                f"Column '{offset_var}' not found in data. Offset of 0 assumed.",
+                stacklevel=2,
+            )
         test_offset = np.zeros(len(data))
 
     # ------------------------------------------------------------------
