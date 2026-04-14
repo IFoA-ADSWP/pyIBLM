@@ -11,3 +11,6 @@ venv/
 .ruff_cache/
 .mypy_cache/
 *.so
+
+# Demo output
+artifacts/

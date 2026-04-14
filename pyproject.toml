@@ -4,11 +4,32 @@ build-backend = "hatchling.build"
 
 [project]
 name = "iblm"
-version = "0.1.0"
-description = "Interpretable Boosted Linear Models – a Python translation of the R IBLM package"
+version = "2.0.1"
+description = "Interpretable Boosted Linear Models: GLM + XGBoost ensemble with SHAP-based interpretability"
+readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Paul Beard" }]
+authors = [
+    { name = "Paul Beard",     email = "paul.beard.actuarial@gmail.com" },
+    { name = "Karol Gawlowski", email = "kg.actuarial@gmail.com" },
+]
+maintainers = [
+    { name = "Paul Beard", email = "paul.beard.actuarial@gmail.com" },
+]
+keywords = ["glm", "xgboost", "shap", "interpretable", "boosting", "insurance", "actuarial"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
 dependencies = [
     "numpy>=1.24",
     "pandas>=2.0",
