@@ -1,16 +1,16 @@
-# iblm
+# pyIBLM
 
 ## Interpretable Boosted Linear Models
 
-[![PyPI version](https://img.shields.io/pypi/v/iblm.svg)](https://pypi.org/project/iblm/)
-[![Python versions](https://img.shields.io/pypi/pyversions/iblm.svg)](https://pypi.org/project/iblm/)
+[![PyPI version](https://img.shields.io/pypi/v/pyIBLM.svg)](https://pypi.org/project/pyIBLM/)
+[![Python versions](https://img.shields.io/pypi/pyversions/pyIBLM.svg)](https://pypi.org/project/pyIBLM/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
 ### Overview
 
-**iblm** implements *Interpretable Boosted Linear Models* — a hybrid modelling approach that combines the transparency of Generalized Linear Models (GLMs) with the predictive power of gradient boosting.
+**pyIBLM** implements *Interpretable Boosted Linear Models* — a hybrid modelling approach that combines the transparency of Generalized Linear Models (GLMs) with the predictive power of gradient boosting.
 
 The model is a two-stage ensemble:
 
@@ -43,13 +43,13 @@ An equivalent **R package** is available on CRAN:
 Install the released version from PyPI:
 
 ```bash
-pip install iblm
+pip install pyIBLM
 ```
 
 To use `load_freMTPL2freq()` (downloads the full French MTPL dataset), install with the optional `data` dependency:
 
 ```bash
-pip install "iblm[data]"
+pip install "pyIBLM[data]"
 ```
 
 ---
@@ -58,7 +58,7 @@ pip install "iblm[data]"
 
 ```python
 import numpy as np
-from iblm import (
+from pyIBLM import (
     load_freMTPLmini,
     split_into_train_validate_test,
     IBLM,
@@ -170,17 +170,16 @@ Contributions are welcome. To report a bug or suggest a feature, please open an 
 
 ### Citation
 
-If you use **iblm** in research or teaching, please cite it as:
+If you use **pyIBLM** in research or teaching, please cite it as:
 
-> Gawlowski, K., Beard, P. and Zhou, Z. (2025). *iblm: Interpretable Boosted Linear Models.* Python package version 2.0.1.
+> Gawlowski, K., Beard, P. and Zhou, Z. (2026). *pyIBLM: Interpretable Boosted Linear Models.* Python package version 2.0.1.
 
 ---
 
 ### Authors
 
-- **Paul Beard** — [paul.beard.actuarial@gmail.com](mailto:paul.beard.actuarial@gmail.com)
 - **Karol Gawlowski** — [kg.actuarial@gmail.com](mailto:kg.actuarial@gmail.com)
-
+- **Paul Beard** — [paul.beard.actuarial@gmail.com](mailto:paul.beard.actuarial@gmail.com)
 Additional contributions by **Zhouwen Zhou**.
 
 ---
