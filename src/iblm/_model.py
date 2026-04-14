@@ -664,7 +664,11 @@ class IBLM:
 # ---------------------------------------------------------------------------
 
 
-def train_xgb_as_per_iblm(iblm_model: IBLM, **xgb_kwargs: Any) -> xgb.Booster:
+def train_xgb_as_per_iblm(
+    iblm_model: IBLM,
+    save_best: bool = True,
+    **xgb_kwargs: Any,
+) -> xgb.Booster:
     """Train a standalone XGBoost model using the same parameters as a fitted IBLM.
 
     Trains an XGBoost model directly on the response variable (with the
@@ -678,6 +682,11 @@ def train_xgb_as_per_iblm(iblm_model: IBLM, **xgb_kwargs: Any) -> xgb.Booster:
     iblm_model:
         A fitted :class:`IBLM` instance.  The training data, validation data,
         and XGBoost parameters are read from this object.
+    save_best:
+        If ``True`` (default), the :class:`xgboost.callback.EarlyStopping`
+        callback will restore the best checkpoint when early stopping fires,
+        matching the behaviour of :meth:`IBLM.fit`.  Set to ``False`` to
+        retain the final iteration instead.
     **xgb_kwargs:
         Optional overrides for the stored XGBoost parameters.  Note that
         supplying overrides will cause the standalone booster to deviate from
@@ -729,7 +738,7 @@ def train_xgb_as_per_iblm(iblm_model: IBLM, **xgb_kwargs: Any) -> xgb.Booster:
 
     callbacks = []
     if early_stopping_rounds:
-        callbacks.append(xgb.callback.EarlyStopping(rounds=early_stopping_rounds, save_best=True))
+        callbacks.append(xgb.callback.EarlyStopping(rounds=early_stopping_rounds, save_best=save_best))
 
     return xgb.train(
         params=params,
