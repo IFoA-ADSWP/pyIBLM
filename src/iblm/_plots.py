@@ -22,6 +22,20 @@ if TYPE_CHECKING:
     from ._model import IBLM
 
 
+def _set_iblm_title(ax: plt.Axes, title: str, subtitle: str | None = None) -> None:
+    """Set bold navy title with optional amber subtitle positioned below it."""
+    ax.set_title(title, pad=28 if subtitle else None)
+    if subtitle:
+        ax.annotate(
+            subtitle,
+            xy=(0.5, 1.0), xycoords="axes fraction",
+            xytext=(0, 5), textcoords="offset points",
+            ha="center", va="bottom",
+            fontsize=10, color=IBLM_COLORS[1],
+            annotation_clip=False,
+        )
+
+
 # ---------------------------------------------------------------------------
 # beta_corrected_scatter
 # ---------------------------------------------------------------------------
@@ -129,7 +143,7 @@ def _beta_corrected_scatter_plot(
         if len(x_vals) >= 10:
             sort_idx = np.argsort(x_vals)
             smoothed = lowess(y_vals[sort_idx], x_vals[sort_idx], frac=0.3)
-            ax.plot(smoothed[:, 0], smoothed[:, 1], color=IBLM_COLORS[2], linewidth=1.5, zorder=4)
+            ax.plot(smoothed[:, 0], smoothed[:, 1], color=IBLM_COLORS[0], linewidth=1.5, zorder=4)
 
         # GLM coefficient line
         if not np.isnan(beta):
@@ -143,10 +157,10 @@ def _beta_corrected_scatter_plot(
         subtitle_parts = [f"{varname} beta: {round(beta, 3)}"]
         if not np.isnan(stderror):
             subtitle_parts.append(f"SE: +/-{round(stderror, 4)}")
-        ax.set_title(
-            f"Beta Coefficients after SHAP corrections for {varname}"
-            f"\n{', '.join(subtitle_parts)}",
-            fontsize=11,
+        _set_iblm_title(
+            ax,
+            f"Beta Coefficients after SHAP corrections for {varname}",
+            ", ".join(subtitle_parts),
         )
 
         ax.set_xlabel(varname)
@@ -277,9 +291,10 @@ def _beta_corrected_density_plot(
     subtitle = f"{varname} beta: {round(beta, 3)}"
     if not np.isnan(stderror):
         subtitle += f", SE: +/-{round(stderror, 4)}"
-    ax.set_title(
-        f"Beta density after SHAP corrections for {varname}\n{subtitle}",
-        fontsize=11,
+    _set_iblm_title(
+        ax,
+        f"Beta density after SHAP corrections for {varname}",
+        subtitle,
     )
 
     _apply_theme(ax)
@@ -454,9 +469,10 @@ def _bias_density_plot(
     subtitle_total = f"bias: {round(intercept, 3)}"
     if not np.isnan(se_intercept):
         subtitle_total += f", SE: +/-{round(se_intercept, 4)}"
-    ax_total.set_title(
-        f"Density for corrected bias values\n{subtitle_total}",
-        fontsize=11,
+    _set_iblm_title(
+        ax_total,
+        "Density for corrected bias values",
+        subtitle_total,
     )
 
     _apply_theme(ax_total)
@@ -516,10 +532,10 @@ def _overall_correction_plot(
         ax.set_xlabel(xlabel)
 
     mean_corr = round(float(np.mean(total_invlink)), 3)
-    ax.set_title(
-        f"Distribution of {relationship} corrections to GLM prediction"
-        f"\nmean correction: {mean_corr}",
-        fontsize=11,
+    _set_iblm_title(
+        ax,
+        f"Distribution of {relationship} corrections to GLM prediction",
+        f"mean correction: {mean_corr}",
     )
 
     _apply_theme(ax)
