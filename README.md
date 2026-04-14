@@ -120,12 +120,19 @@ Users of the R package will find a direct equivalent for every function. The mai
 
 #### Plots
 
+In Python, plot functions are methods on the `ExplainIBLM` class. Create an explainer object first, then call plots on it:
+
+```python
+explainer = ExplainIBLM(iblm_model, data)
+fig = explainer.beta_corrected_scatter("DrivAge")
+```
+
 | R | Python |
 |---|---|
-| `beta_corrected_scatter(explainer, varname, ...)` | `ex.beta_corrected_scatter(varname, ...)` |
-| `beta_corrected_density(explainer, varname, ...)` | `ex.beta_corrected_density(varname, ...)` |
-| `bias_density(explainer, ...)` | `ex.bias_density(...)` |
-| `overall_correction(explainer, ...)` | `ex.overall_correction(...)` |
+| `beta_corrected_scatter(explainer, varname, ...)` | `ExplainIBLM(iblm_model, data).beta_corrected_scatter(varname, ...)` |
+| `beta_corrected_density(explainer, varname, ...)` | `ExplainIBLM(iblm_model, data).beta_corrected_density(varname, ...)` |
+| `bias_density(explainer, ...)` | `ExplainIBLM(iblm_model, data).bias_density(...)` |
+| `overall_correction(explainer, ...)` | `ExplainIBLM(iblm_model, data).overall_correction(...)` |
 | `create_beta_corrected_scatter(iblm_model, data, varname)` | `ExplainIBLM(iblm_model, data).beta_corrected_scatter(varname)` |
 | `create_beta_corrected_density(iblm_model, data, varname)` | `ExplainIBLM(iblm_model, data).beta_corrected_density(varname)` |
 | `create_bias_density(iblm_model, data)` | `ExplainIBLM(iblm_model, data).bias_density()` |
