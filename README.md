@@ -94,6 +94,70 @@ fig.show()
 
 ---
 
+### R to Python reference
+
+Users of the R package will find a direct equivalent for every function. The main structural difference is that explainability methods are accessed through the `ExplainIBLM` class rather than as standalone functions, and plotting is done via methods on that object rather than through separate `create_*` wrappers.
+
+#### Core modelling
+
+| R | Python |
+|---|---|
+| `train_iblm_xgb(df_list, response_var, ...)` | `IBLM().fit(df_dict, response_var, ...)` |
+| `predict.iblm(model, newdata, trim)` | `model.predict(newdata, trim=trim)` |
+| `train_xgb_as_per_iblm(iblm_model)` | `train_xgb_as_per_iblm(iblm_model)` |
+
+#### Explainability
+
+| R | Python |
+|---|---|
+| `explain_iblm(iblm_model, data)` | `ExplainIBLM(iblm_model, data)` |
+| `data_to_onehot(data, iblm_model)` | `data_to_onehot(data, iblm_model)` |
+| `shap_to_onehot(shap, wide_input_frame, iblm_model)` | `shap_to_onehot(shap, wide_input_frame, iblm_model)` |
+| `beta_corrections_derive(shap_wide, wide_input_frame, iblm_model)` | `beta_corrections_derive(shap_wide, wide_input_frame, iblm_model)` |
+| `data_beta_coeff_glm(data, iblm_model)` | `data_beta_coeff_glm(data, iblm_model)` |
+| `data_beta_coeff_booster(beta_corrections, iblm_model)` | `data_beta_coeff_booster(beta_corrections, iblm_model)` |
+| `extract_booster_shap(booster_model, data)` | `extract_booster_shap(booster_model, data)` |
+
+#### Plots
+
+| R | Python |
+|---|---|
+| `beta_corrected_scatter(explainer, varname, ...)` | `ex.beta_corrected_scatter(varname, ...)` |
+| `beta_corrected_density(explainer, varname, ...)` | `ex.beta_corrected_density(varname, ...)` |
+| `bias_density(explainer, ...)` | `ex.bias_density(...)` |
+| `overall_correction(explainer, ...)` | `ex.overall_correction(...)` |
+| `create_beta_corrected_scatter(iblm_model, data, varname)` | `ExplainIBLM(iblm_model, data).beta_corrected_scatter(varname)` |
+| `create_beta_corrected_density(iblm_model, data, varname)` | `ExplainIBLM(iblm_model, data).beta_corrected_density(varname)` |
+| `create_bias_density(iblm_model, data)` | `ExplainIBLM(iblm_model, data).bias_density()` |
+| `create_overall_correction(iblm_model, data)` | `ExplainIBLM(iblm_model, data).overall_correction()` |
+| `correction_corridor(iblm_model, data, ...)` | `correction_corridor(iblm_model, data, ...)` |
+
+#### Evaluation
+
+| R | Python |
+|---|---|
+| `get_pinball_scores(data, iblm_model, ...)` | `get_pinball_scores(data, iblm_model, ...)` |
+
+#### Utilities and data
+
+| R | Python |
+|---|---|
+| `split_into_train_validate_test(data, seed)` | `split_into_train_validate_test(data, seed=seed)` |
+| `theme_iblm()` | `theme_iblm(ax)` |
+| `freMTPLmini` (built-in dataset) | `load_freMTPLmini()` |
+| `load_freMTPL2freq()` | `load_freMTPL2freq()` |
+
+#### R-only functions with no Python equivalent
+
+| R | Notes |
+|---|---|
+| `check_iblm_model(model)` | Validation is done internally; not exposed publicly |
+| `check_data_variability(data)` | Called automatically inside `IBLM.fit()` |
+| `detect_outliers(x, q)` | Internal helper; not part of the public API |
+| `drop_xgb_data_params(params)` | Internal helper |
+
+---
+
 ### Documentation
 
 For full documentation on the R implementation (functions, methods and theoretical background):
