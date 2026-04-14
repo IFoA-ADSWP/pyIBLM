@@ -147,15 +147,6 @@ Users of the R package will find a direct equivalent for every function. The mai
 | `freMTPLmini` (built-in dataset) | `load_freMTPLmini()` |
 | `load_freMTPL2freq()` | `load_freMTPL2freq()` |
 
-#### R-only functions with no Python equivalent
-
-| R | Notes |
-|---|---|
-| `check_iblm_model(model)` | Validation is done internally; not exposed publicly |
-| `check_data_variability(data)` | Called automatically inside `IBLM.fit()` |
-| `detect_outliers(x, q)` | Internal helper; not part of the public API |
-| `drop_xgb_data_params(params)` | Internal helper |
-
 ---
 
 ### Documentation
