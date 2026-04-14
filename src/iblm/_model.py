@@ -241,6 +241,7 @@ class IBLM:
         params: dict | None = None,
         nrounds: int = 1000,
         early_stopping_rounds: int = 25,
+        save_best: bool = True,
         verbose: bool | int = 0,
         strip_glm: bool = True,
         **xgb_kwargs: Any,
@@ -292,6 +293,12 @@ class IBLM:
         early_stopping_rounds:
             Stop boosting if the validation metric does not improve for this
             many consecutive rounds.
+        save_best:
+            If ``True`` (default), the early-stopping callback restores the
+            best checkpoint when training stops early.  Set to ``False`` to
+            retain the weights from the final round instead.  This value is
+            stored and reused automatically by
+            :func:`~iblm.train_xgb_as_per_iblm`.
         verbose:
             Verbosity level for XGBoost training (``0`` = silent).
         strip_glm:
@@ -455,7 +462,7 @@ class IBLM:
         callbacks = []
         if early_stopping_rounds:
             callbacks.append(
-                xgb.callback.EarlyStopping(rounds=early_stopping_rounds, save_best=True)
+                xgb.callback.EarlyStopping(rounds=early_stopping_rounds, save_best=save_best)
             )
 
         booster = xgb.train(
@@ -516,6 +523,7 @@ class IBLM:
         }
         if early_stopping_rounds:
             stored_xgb_params["early_stopping_rounds"] = early_stopping_rounds
+            stored_xgb_params["save_best"] = save_best
 
         # ------------------------------------------------------------------
         # Assign to self
@@ -666,7 +674,7 @@ class IBLM:
 
 def train_xgb_as_per_iblm(
     iblm_model: IBLM,
-    save_best: bool = True,
+    save_best: bool | None = None,
     **xgb_kwargs: Any,
 ) -> xgb.Booster:
     """Train a standalone XGBoost model using the same parameters as a fitted IBLM.
@@ -683,10 +691,11 @@ def train_xgb_as_per_iblm(
         A fitted :class:`IBLM` instance.  The training data, validation data,
         and XGBoost parameters are read from this object.
     save_best:
-        If ``True`` (default), the :class:`xgboost.callback.EarlyStopping`
-        callback will restore the best checkpoint when early stopping fires,
-        matching the behaviour of :meth:`IBLM.fit`.  Set to ``False`` to
-        retain the final iteration instead.
+        Controls whether the early-stopping callback restores the best
+        checkpoint when training stops early.  ``None`` (default) reuses
+        the value that was passed to :meth:`IBLM.fit`, falling back to
+        ``True`` if not recorded.  Pass ``True`` or ``False`` explicitly
+        to override the stored value.
     **xgb_kwargs:
         Optional overrides for the stored XGBoost parameters.  Note that
         supplying overrides will cause the standalone booster to deviate from
@@ -735,10 +744,12 @@ def train_xgb_as_per_iblm(
     params = stored.pop("params", {})
     num_boost_round = stored.pop("num_boost_round", 1000)
     early_stopping_rounds = stored.pop("early_stopping_rounds", None)
+    stored_save_best = stored.pop("save_best", True)
+    effective_save_best = stored_save_best if save_best is None else save_best
 
     callbacks = []
     if early_stopping_rounds:
-        callbacks.append(xgb.callback.EarlyStopping(rounds=early_stopping_rounds, save_best=save_best))
+        callbacks.append(xgb.callback.EarlyStopping(rounds=early_stopping_rounds, save_best=effective_save_best))
 
     return xgb.train(
         params=params,
