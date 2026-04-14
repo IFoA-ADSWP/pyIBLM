@@ -729,7 +729,7 @@ def train_xgb_as_per_iblm(iblm_model: IBLM, **xgb_kwargs: Any) -> xgb.Booster:
 
     callbacks = []
     if early_stopping_rounds:
-        callbacks.append(xgb.callback.EarlyStopping(rounds=early_stopping_rounds))
+        callbacks.append(xgb.callback.EarlyStopping(rounds=early_stopping_rounds, save_best=True))
 
     return xgb.train(
         params=params,

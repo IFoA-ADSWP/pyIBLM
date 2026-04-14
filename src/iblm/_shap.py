@@ -80,13 +80,14 @@ try:
         """
         feature_names: list[str] = booster_model.feature_names
 
-        # Keep only the features the booster knows about
-        available = [f for f in feature_names if f in data.columns]
-        X = data[available].copy()
+        missing = [f for f in feature_names if f not in data.columns]
+        if missing:
+            raise ValueError(
+                f"Data is missing {len(missing)} feature(s) required by the booster: "
+                f"{missing}. Ensure the same columns used during training are present."
+            )
 
-        # Ensure categorical columns are properly typed
-        for col in X.select_dtypes(include=["category"]).columns:
-            pass  # already categorical, xgb.DMatrix handles it
+        X = data[feature_names].copy()
 
         dmat = xgb.DMatrix(
             X,

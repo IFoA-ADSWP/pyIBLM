@@ -423,6 +423,13 @@ def shap_to_onehot(
     for col in cat_vars:
         levels = cat_levels_all[col]
         onehot_cols = [f"{col}{lvl}" for lvl in levels]
+        missing_cols = [c for c in onehot_cols if c not in wif.columns]
+        if missing_cols:
+            raise ValueError(
+                f"wide_input_frame is missing one-hot columns for '{col}': "
+                f"{missing_cols}. Ensure data_to_onehot() was called on the "
+                f"same data before passing to shap_to_onehot()."
+            )
         mask = wif[onehot_cols].to_numpy(dtype=float)                  # (n, n_levels)
         shap_vals = shap[col].to_numpy(dtype=float)[:, np.newaxis]     # (n, 1)
         distributed = shap_vals * mask                                  # (n, n_levels)
