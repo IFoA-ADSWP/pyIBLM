@@ -133,10 +133,6 @@ fig = explainer.beta_corrected_scatter("DrivAge")
 | `beta_corrected_density(explainer, varname, ...)` | `ExplainIBLM(iblm_model, data).beta_corrected_density(varname, ...)` |
 | `bias_density(explainer, ...)` | `ExplainIBLM(iblm_model, data).bias_density(...)` |
 | `overall_correction(explainer, ...)` | `ExplainIBLM(iblm_model, data).overall_correction(...)` |
-| `create_beta_corrected_scatter(iblm_model, data, varname)` | `ExplainIBLM(iblm_model, data).beta_corrected_scatter(varname)` |
-| `create_beta_corrected_density(iblm_model, data, varname)` | `ExplainIBLM(iblm_model, data).beta_corrected_density(varname)` |
-| `create_bias_density(iblm_model, data)` | `ExplainIBLM(iblm_model, data).bias_density()` |
-| `create_overall_correction(iblm_model, data)` | `ExplainIBLM(iblm_model, data).overall_correction()` |
 | `correction_corridor(iblm_model, data, ...)` | `correction_corridor(iblm_model, data, ...)` |
 
 #### Evaluation
