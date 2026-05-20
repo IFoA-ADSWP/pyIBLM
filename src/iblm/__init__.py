@@ -95,7 +95,7 @@ __all__ = [
     "__contributors__",
 ]
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 __authors__ = [
     "Paul Beard <paul.beard.actuarial@gmail.com>",
     "Karol Gawlowski <kg.actuarial@gmail.com>",

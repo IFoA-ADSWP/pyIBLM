@@ -62,10 +62,6 @@ path = "src/iblm/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["src/iblm"]
 
-[tool.hatch.build.targets.sdist]
-include = [
-    "/src/iblm/data/freMTPLmini.csv",
-]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
