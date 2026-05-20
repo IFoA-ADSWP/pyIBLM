@@ -3,10 +3,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "iblm"
-version = "2.0.1"
+name = "pyiblm"
+dynamic = ["version"]
 description = "Interpretable Boosted Linear Models: GLM + XGBoost ensemble with SHAP-based interpretability"
-readme = "README.md"
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
@@ -18,7 +18,7 @@ maintainers = [
 ]
 keywords = ["glm", "xgboost", "shap", "interpretable", "boosting", "insurance", "actuarial"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Financial and Insurance Industry",
     "License :: OSI Approved :: MIT License",
@@ -30,12 +30,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Mathematics",
 ]
-[project.urls]
-Homepage = "https://github.com/paulbeardactuarial/vibeeLM"
-Repository = "https://github.com/paulbeardactuarial/vibeeLM"
-"Bug Tracker" = "https://github.com/paulbeardactuarial/vibeeLM/issues"
-Documentation = "https://ifoa-adswp.github.io/IBLM/"
-
 dependencies = [
     "numpy>=1.24",
     "pandas>=2.0",
@@ -56,11 +50,22 @@ dev = [
     "ipykernel",
 ]
 
+[project.urls]
+Homepage = "https://ifoa-adswp.github.io/pyIBLM/"
+Repository = "https://github.com/IFoA-ADSWP/pyIBLM"
+"Bug Tracker" = "https://github.com/IFoA-ADSWP/pyIBLM/issues"
+Documentation = "https://ifoa-adswp.github.io/pyIBLM/"
+
+[tool.hatch.version]
+path = "src/iblm/__init__.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/iblm"]
 
-[tool.hatch.build.targets.wheel.force-include]
-"src/iblm/data" = "iblm/data"
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/iblm/data/freMTPLmini.csv",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

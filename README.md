@@ -2,8 +2,8 @@
 
 ## Interpretable Boosted Linear Models
 
-[![PyPI version](https://img.shields.io/pypi/v/pyIBLM.svg)](https://pypi.org/project/pyIBLM/)
-[![Python versions](https://img.shields.io/pypi/pyversions/pyIBLM.svg)](https://pypi.org/project/pyIBLM/)
+[![PyPI version](https://img.shields.io/pypi/v/pyiblm.svg)](https://pypi.org/project/pyiblm/)
+[![Python versions](https://img.shields.io/pypi/pyversions/pyiblm.svg)](https://pypi.org/project/pyiblm/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
@@ -43,13 +43,13 @@ An equivalent **R package** is available on CRAN:
 Install the released version from PyPI:
 
 ```bash
-pip install pyIBLM
+pip install pyiblm
 ```
 
 To use `load_freMTPL2freq()` (downloads the full French MTPL dataset), install with the optional `data` dependency:
 
 ```bash
-pip install "pyIBLM[data]"
+pip install "pyiblm[data]"
 ```
 
 ---
@@ -58,7 +58,7 @@ pip install "pyIBLM[data]"
 
 ```python
 import numpy as np
-from pyIBLM import (
+from iblm import (
     load_freMTPLmini,
     split_into_train_validate_test,
     IBLM,
@@ -92,66 +92,6 @@ fig = ex.beta_corrected_scatter("DrivAge", color="VehPower")
 fig.show()
 ```
 
----
-
-### R to Python reference
-
-Users of the R package will find a direct equivalent for every function. The main structural difference is that explainability methods are accessed through the `ExplainIBLM` class rather than as standalone functions, and plotting is done via methods on that object rather than through separate `create_*` wrappers.
-
-#### Core modelling
-
-| R | Python |
-|---|---|
-| `train_iblm_xgb(df_list, response_var, ...)` | `IBLM().fit(df_dict, response_var, ...)` |
-| `predict.iblm(model, newdata, trim)` | `model.predict(newdata, trim=trim)` |
-| `train_xgb_as_per_iblm(iblm_model)` | `train_xgb_as_per_iblm(iblm_model)` |
-
-#### Explainability
-
-| R | Python |
-|---|---|
-| `explain_iblm(iblm_model, data)` | `ExplainIBLM(iblm_model, data)` |
-| `data_to_onehot(data, iblm_model)` | `data_to_onehot(data, iblm_model)` |
-| `shap_to_onehot(shap, wide_input_frame, iblm_model)` | `shap_to_onehot(shap, wide_input_frame, iblm_model)` |
-| `beta_corrections_derive(shap_wide, wide_input_frame, iblm_model)` | `beta_corrections_derive(shap_wide, wide_input_frame, iblm_model)` |
-| `data_beta_coeff_glm(data, iblm_model)` | `data_beta_coeff_glm(data, iblm_model)` |
-| `data_beta_coeff_booster(beta_corrections, iblm_model)` | `data_beta_coeff_booster(beta_corrections, iblm_model)` |
-| `extract_booster_shap(booster_model, data)` | `extract_booster_shap(booster_model, data)` |
-
-#### Plots
-
-In Python, plot functions are methods on the `ExplainIBLM` class. Create an explainer object first, then call plots on it:
-
-```python
-explainer = ExplainIBLM(iblm_model, data)
-fig = explainer.beta_corrected_scatter("DrivAge")
-```
-
-| R | Python |
-|---|---|
-| `beta_corrected_scatter(explainer, varname, ...)` | `ExplainIBLM(iblm_model, data).beta_corrected_scatter(varname, ...)` |
-| `beta_corrected_density(explainer, varname, ...)` | `ExplainIBLM(iblm_model, data).beta_corrected_density(varname, ...)` |
-| `bias_density(explainer, ...)` | `ExplainIBLM(iblm_model, data).bias_density(...)` |
-| `overall_correction(explainer, ...)` | `ExplainIBLM(iblm_model, data).overall_correction(...)` |
-| `correction_corridor(iblm_model, data, ...)` | `correction_corridor(iblm_model, data, ...)` |
-
-#### Evaluation
-
-| R | Python |
-|---|---|
-| `get_pinball_scores(data, iblm_model, ...)` | `get_pinball_scores(data, iblm_model, ...)` |
-
-#### Utilities and data
-
-| R | Python |
-|---|---|
-| `split_into_train_validate_test(data, seed)` | `split_into_train_validate_test(data, seed=seed)` |
-| `theme_iblm()` | `theme_iblm(ax)` |
-| `freMTPLmini` (built-in dataset) | `load_freMTPLmini()` |
-| `load_freMTPL2freq()` | `load_freMTPL2freq()` |
-
----
-
 ### Documentation
 
 For full documentation on the R implementation (functions, methods and theoretical background):
@@ -164,7 +104,7 @@ For full documentation on the R implementation (functions, methods and theoretic
 
 Contributions are welcome. To report a bug or suggest a feature, please open an issue on GitHub:
 
-🔗 [https://github.com/paulbeardactuarial/vibeeLM/issues](https://github.com/paulbeardactuarial/vibeeLM/issues)
+🔗 [https://github.com/IFoA-ADSWP/pyIBLM/issues](https://github.com/IFoA-ADSWP/pyIBLM/issues)
 
 ---
 
@@ -172,7 +112,7 @@ Contributions are welcome. To report a bug or suggest a feature, please open an 
 
 If you use **pyIBLM** in research or teaching, please cite it as:
 
-> Gawlowski, K., Beard, P. and Zhou, Z. (2026). *pyIBLM: Interpretable Boosted Linear Models.* Python package version 2.0.1.
+> Gawlowski, K. and Beard, P. (2026). *pyIBLM: Interpretable Boosted Linear Models.* Python package version 2.0.1.
 
 ---
 
