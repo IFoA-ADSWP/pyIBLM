@@ -5,6 +5,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/pyiblm.svg)](https://pypi.org/project/pyiblm/)
 [![Python versions](https://img.shields.io/pypi/pyversions/pyiblm.svg)](https://pypi.org/project/pyiblm/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Downloads](https://img.shields.io/pypi/dm/pyiblm.svg)](https://pypi.org/project/pyiblm/)
 
 ---
 
