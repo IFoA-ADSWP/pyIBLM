@@ -2,6 +2,7 @@
 
 ## Interpretable Boosted Linear Models
 
+[![CI](https://github.com/IFoA-ADSWP/pyIBLM/actions/workflows/ci.yml/badge.svg)](https://github.com/IFoA-ADSWP/pyIBLM/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/pyiblm.svg)](https://pypi.org/project/pyiblm/)
 [![Python versions](https://img.shields.io/pypi/pyversions/pyiblm.svg)](https://pypi.org/project/pyiblm/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
