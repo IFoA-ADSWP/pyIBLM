@@ -14,29 +14,14 @@
 
 **pyIBLM** implements *Interpretable Boosted Linear Models* — a hybrid modelling approach that combines the transparency of Generalized Linear Models (GLMs) with the predictive power of gradient boosting.
 
-The model is a two-stage ensemble:
-
-1. A **GLM** is fitted on the training data, producing interpretable coefficient estimates.
-2. An **XGBoost booster** is trained on the GLM residuals, using the GLM's linear predictor as its base margin — learning only what the GLM could not capture.
-
-Depending on the link function, the two components are combined as:
-
-- **Multiplicative** (log-link families: Poisson, Gamma, Tweedie):
-  `prediction = GLM prediction × Booster correction`
-- **Additive** (identity-link families: Gaussian):
-  `prediction = GLM prediction + Booster correction`
-
-SHAP values decompose the booster correction back onto the original GLM feature scale, making the full model auditable and interpretable at the individual prediction level.
-
 The package provides:
 
-- Fitting of IBLM models across Poisson, Quasi-Poisson, Gamma, Tweedie, and Gaussian families
-- SHAP-based explainability tools with beta coefficient visualisations
-- Model comparison via pinball scores and correction corridor plots
-- Bundled insurance pricing datasets (`freMTPLmini`, `freMTPL2freq`)
+Functions for fitting interpretable boosted linear models
+Tools to analyze and visualize model results
+Support for model comparison and diagnostics
 
-An equivalent **R package** is available on CRAN:
-🔗 [https://CRAN.R-project.org/package=IBLM](https://CRAN.R-project.org/package=IBLM)
+An equivalent **R package** is available:
+🔗 [https://ifoa-adswp.github.io/IBLM](https://ifoa-adswp.github.io/IBLM)
 
 ---
 
@@ -122,6 +107,7 @@ If you use **pyIBLM** in research or teaching, please cite it as:
 
 - **Karol Gawlowski** — [kg.actuarial@gmail.com](mailto:kg.actuarial@gmail.com)
 - **Paul Beard** — [paul.beard.actuarial@gmail.com](mailto:paul.beard.actuarial@gmail.com)
+
 Additional contributions by **Zhouwen Zhou**.
 
 ---
