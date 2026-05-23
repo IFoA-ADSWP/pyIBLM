@@ -20,7 +20,7 @@ Functions for fitting interpretable boosted linear models
 Tools to analyze and visualize model results
 Support for model comparison and diagnostics
 
-An equivalent **R package** is available:
+This is a **Python package**. However an equivalent **R package** is available too:
 🔗 [https://ifoa-adswp.github.io/IBLM](https://ifoa-adswp.github.io/IBLM)
 
 ---
