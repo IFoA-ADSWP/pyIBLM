@@ -29,4 +29,3 @@ format:
 
 execute:
   warning: false
-  freeze: auto

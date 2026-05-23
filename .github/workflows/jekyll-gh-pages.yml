@@ -36,7 +36,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: _freeze
-          key: quarto-freeze-${{ hashFiles('articles/**/*.qmd', 'index.qmd') }}
+          key: quarto-freeze-${{ hashFiles('articles/**/*.qmd', 'README.md') }}
           restore-keys: quarto-freeze-
 
       - name: Render site
