@@ -48,6 +48,7 @@ data = [
 dev = [
     "pytest>=7.0",
     "ipykernel",
+    "pyyaml",
 ]
 
 [project.urls]

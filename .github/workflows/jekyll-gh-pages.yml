@@ -28,7 +28,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install Python dependencies
-        run: pip install -e ".[dev,data]"
+        run: pip install -e ".[dev,data]" pyyaml
 
       - uses: quarto-dev/quarto-actions/setup@v2
 
