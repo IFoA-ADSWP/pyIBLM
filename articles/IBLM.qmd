@@ -159,13 +159,15 @@ df_dict = split_into_train_validate_test(
 )
 ```
 
-There is currently one function available to train an IBLM. `IBLM().fit()` uses XGBoost as the booster model, performing steps 1 and 2 of the [Theory].
+The `IBLM` class has currently one method available to train it: `IBLM.fit()`. This method uses XGBoost as the booster model, performing steps 1 and 2 of the [Theory].
 
 The output is an object of class `IBLM`. It contains two component models: `glm_model` and `booster_model`, along with other metadata (see the `IBLM.fit()` docstring for full details).
 
 ```{python}
 #| label: train
-iblm_model = IBLM().fit(
+iblm_model = IBLM()
+
+iblm_model = iblm_model.fit(
     df_dict,
     response_var="ClaimNb",
     family="poisson",
@@ -432,7 +434,9 @@ df_dict_offset = split_into_train_validate_test(
     seed=1,
 )
 
-iblm_model_offset = IBLM().fit(
+iblm_model_offset = IBLM()
+
+iblm_model_offset = iblm_model_offset.fit(
     df_dict_offset,
     response_var="ClaimNb",
     offset_var="LogExposure",
@@ -484,7 +488,9 @@ df_dict_weight = split_into_train_validate_test(
     seed=1,
 )
 
-iblm_model_weight = IBLM().fit(
+iblm_model_weight = IBLM()
+
+iblm_model_weight = iblm_model_weight.fit(
     df_dict_weight,
     response_var="ClaimRate",
     weight_var="Exposure",
