@@ -1,0 +1,30 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - index.qmd
+    - articles/*.qmd
+
+website:
+  title: "pyIBLM"
+  navbar:
+    logo: logo/logo.png
+    left:
+      - href: index.qmd
+        text: Home
+      - href: articles/IBLM.qmd
+        text: User Guide
+    right:
+      - icon: github
+        href: https://github.com/IFoA-ADSWP/pyIBLM
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 4
+    margin-header: _margin-header.html
+
+execute:
+  warning: false
+  freeze: auto

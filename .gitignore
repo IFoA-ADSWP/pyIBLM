@@ -14,3 +14,10 @@ venv/
 
 # Demo output
 artifacts/
+
+# Quarto build output and execution cache (managed via GitHub Actions cache)
+_site/
+_freeze/
+
+/.quarto/
+**/*.quarto_ipynb
