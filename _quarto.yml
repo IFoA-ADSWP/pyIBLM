@@ -13,7 +13,9 @@ website:
       - href: index.qmd
         text: Home
       - href: articles/IBLM.qmd
-        text: User Guide
+        text: IBLM
+      - href: https://ifoa-adswp.github.io/IBLM/reference/figures/iblm_paper.pdf
+        text: Paper
     right:
       - icon: github
         href: https://github.com/IFoA-ADSWP/pyIBLM
